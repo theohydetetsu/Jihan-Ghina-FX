@@ -42,7 +42,7 @@ if "page_matrix" not in st.session_state:
 # ==========================================
 # 1. KONFIGURASI HALAMAN & UI STYLE
 # ==========================================
-st.set_page_config(page_title="JIHAN-GHINA FX Pro Max v1.1", page_icon="logo.ico", layout="wide")
+st.set_page_config(page_title="JIHAN-GHINA FX Pro Max v1.1", page_icon="logo.png", layout="wide")
 
 st.markdown("""
 <style>

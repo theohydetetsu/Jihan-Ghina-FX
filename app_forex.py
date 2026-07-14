@@ -32,53 +32,104 @@ if "raw_forex" not in st.session_state:
 if "scan_clicked" not in st.session_state:
     st.session_state.scan_clicked = True if len(st.session_state.raw_forex) > 0 else False
 
-if "page_matrix" not in st.session_state:
-    st.session_state.page_matrix = 0
-
 if "current_tf" not in st.session_state:
     st.session_state.current_tf = "1 Hari (Daily)"
 
 # ==========================================
-# 1. KONFIGURASI HALAMAN & UI STYLE
+# 1. KONFIGURASI HALAMAN & UI STYLE (ULTRA-PREMIUM)
 # ==========================================
 st.set_page_config(page_title="JIHAN-GHINA FX Pro Max v8.9", page_icon="💱", layout="wide")
 
 st.markdown("""
 <style>
-    @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;800;900&display=swap');
-    html, body, [class*="css"] { font-family: 'Inter', sans-serif; }
+    @import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&display=swap');
     
-    [data-testid="stAppViewContainer"] { background: radial-gradient(circle at 50% -20%, #0f172a, #020617) !important; color: #f8fafc !important; }
+    /* Global Typography & Background */
+    html, body, [class*="css"] { font-family: 'Plus Jakarta Sans', sans-serif; }
+    [data-testid="stAppViewContainer"] { 
+        background: radial-gradient(circle at 50% 0%, #1e1b4b, #020617, #000000) !important; 
+        color: #f8fafc !important; 
+    }
     [data-testid="stHeader"] { background: transparent !important; }
+    .block-container { padding-top: 1.5rem; padding-bottom: 2.5rem; max-width: 96% !important; }
     
-    .block-container { padding-top: 1.5rem; padding-bottom: 2rem; max-width: 98% !important; }
-    h1 { color: #f8fafc; font-weight: 900; letter-spacing: -1px; font-size: 2.2rem !important; margin-bottom: 0; }
-    p { color: #94a3b8; font-weight: 300; }
+    /* Scrollbar Sleek */
+    ::-webkit-scrollbar { width: 6px; height: 6px; }
+    ::-webkit-scrollbar-track { background: rgba(15, 23, 42, 0.2); }
+    ::-webkit-scrollbar-thumb { background: rgba(250, 204, 21, 0.4); border-radius: 10px; }
+    ::-webkit-scrollbar-thumb:hover { background: rgba(250, 204, 21, 0.8); }
     
-    /* Scrollbar Global & Tabel HTML Native */
-    ::-webkit-scrollbar { width: 8px; height: 10px; }
-    ::-webkit-scrollbar-track { background: rgba(15, 23, 42, 0.5); border-radius: 10px; }
-    ::-webkit-scrollbar-thumb { background: rgba(250, 204, 21, 0.5); border-radius: 10px; border: 2px solid rgba(15, 23, 42, 0.5); }
-    ::-webkit-scrollbar-thumb:hover { background: rgba(250, 204, 21, 1); }
+    /* Headings & Texts */
+    h1 { color: #ffffff; font-weight: 800; letter-spacing: -1px; font-size: 2.4rem !important; margin-bottom: 0; text-shadow: 0 0 20px rgba(255,255,255,0.1); }
+    p { color: #94a3b8; font-weight: 300; line-height: 1.6; }
     
-    section[data-testid="stSidebar"] { background-color: rgba(2, 6, 23, 0.75) !important; backdrop-filter: blur(15px); border-right: 1px solid rgba(255, 255, 255, 0.05); }
-    .premium-card { background: rgba(30, 41, 59, 0.3); backdrop-filter: blur(16px); border: 1px solid rgba(255, 255, 255, 0.08); border-radius: 10px; padding: 15px; box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.3); transition: all 0.3s ease-in-out; }
-    .premium-card:hover { transform: translateY(-5px); box-shadow: 0 12px 25px -5px rgba(250, 204, 21, 0.3); border-color: rgba(250, 204, 21, 0.4); }
-    [data-testid="stForm"] { background: rgba(30, 41, 59, 0.3); backdrop-filter: blur(16px); border: 1px solid rgba(255, 255, 255, 0.08); border-left: 5px solid #facc15; border-radius: 10px; padding: 20px; box-shadow: 0 10px 30px -10px rgba(0, 0, 0, 0.5); }
+    /* Glassmorphism Cards */
+    .premium-card { 
+        background: linear-gradient(145deg, rgba(30, 41, 59, 0.6), rgba(15, 23, 42, 0.4));
+        backdrop-filter: blur(20px); 
+        -webkit-backdrop-filter: blur(20px);
+        border: 1px solid rgba(255, 255, 255, 0.05); 
+        border-top: 1px solid rgba(255, 255, 255, 0.1);
+        border-radius: 16px; 
+        padding: 20px; 
+        box-shadow: 0 10px 30px -10px rgba(0, 0, 0, 0.5); 
+        transition: transform 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275), box-shadow 0.4s ease;
+    }
+    .premium-card:hover { 
+        transform: translateY(-5px) scale(1.01); 
+        box-shadow: 0 20px 40px -15px rgba(250, 204, 21, 0.15); 
+        border-color: rgba(250, 204, 21, 0.3); 
+    }
     
-    .ihsg-box { text-align: right; display: flex; flex-direction: column; justify-content: center; height: 100%; padding: 10px 15px !important; }
-    .ihsg-title { color: #94a3b8; font-size: 0.65rem; font-weight: 600; letter-spacing: 1.5px; text-transform: uppercase; }
-    .ihsg-score { color: #facc15; font-size: 1.5rem; font-weight: 900; line-height: 1.1; margin: 2px 0; }
-    .strat-num { font-size: 2.2rem; font-weight: 900; margin: 2px 0; line-height: 1; text-align: center; }
-    .strat-label { font-size: 0.75rem; font-weight: 600; text-align: center; letter-spacing: 1px; }
+    /* Gradient Divider */
+    hr {
+        border: 0;
+        height: 1px;
+        background: linear-gradient(to right, rgba(255,255,255,0), rgba(255,255,255,0.15), rgba(255,255,255,0));
+        margin: 2rem 0;
+    }
+    .thin-divider {
+        background: linear-gradient(to right, rgba(250,204,21,0), rgba(250,204,21,0.5), rgba(250,204,21,0));
+        height: 1px; width: 100%; margin: 15px 0; border: none;
+    }
     
-    div.stButton > button:first-child, div[data-testid="stFormSubmitButton"] > button { background: rgba(250, 204, 21, 0.1) !important; border: 1px solid rgba(250, 204, 21, 0.5) !important; color: #facc15 !important; border-radius: 6px !important; padding: 8px 12px !important; transition: all 0.3s ease; }
-    div.stButton > button:first-child p, div[data-testid="stFormSubmitButton"] > button p { color: #facc15 !important; font-weight: 800 !important; font-size: 0.95rem !important; letter-spacing: 0.5px; margin: 0; }
-    div.stButton > button:first-child:hover, div[data-testid="stFormSubmitButton"] > button:hover { background: #facc15 !important; transform: scale(1.02); box-shadow: 0 0 15px rgba(250, 204, 21, 0.5); }
+    /* Sidebar & Forms */
+    section[data-testid="stSidebar"] { 
+        background-color: rgba(2, 6, 23, 0.6) !important; 
+        backdrop-filter: blur(25px); 
+        border-right: 1px solid rgba(255, 255, 255, 0.03); 
+    }
+    [data-testid="stForm"] {
+        background: rgba(15, 23, 42, 0.6); backdrop-filter: blur(20px); 
+        border: 1px solid rgba(255, 255, 255, 0.05); border-left: 4px solid #facc15;
+        border-radius: 12px; padding: 25px; box-shadow: 0 15px 35px -10px rgba(0,0,0,0.6);
+    }
+    
+    /* Custom Elements */
+    .ihsg-box { display: flex; flex-direction: column; justify-content: center; text-align: right; }
+    .ihsg-title { color: #cbd5e1; font-size: 0.7rem; font-weight: 700; letter-spacing: 2px; text-transform: uppercase; margin-bottom: 5px; }
+    .ihsg-score { font-size: 1.8rem; font-weight: 800; line-height: 1.1; margin: 0; font-variant-numeric: tabular-nums; }
+    
+    .strat-num { font-size: 2.5rem; font-weight: 800; margin: 0; line-height: 1; text-align: center; font-variant-numeric: tabular-nums; }
+    .strat-label { font-size: 0.75rem; font-weight: 700; text-align: center; letter-spacing: 1.5px; text-transform: uppercase; margin-bottom: 8px; }
+    
+    /* Buttons */
+    div.stButton > button:first-child, div[data-testid="stFormSubmitButton"] > button { 
+        background: linear-gradient(135deg, rgba(250, 204, 21, 0.15) 0%, rgba(250, 204, 21, 0.05) 100%) !important; 
+        border: 1px solid rgba(250, 204, 21, 0.4) !important; 
+        border-radius: 8px !important; padding: 10px 15px !important; transition: all 0.3s ease;
+    }
+    div.stButton > button:first-child p, div[data-testid="stFormSubmitButton"] > button p {
+        color: #facc15 !important; font-weight: 700 !important; font-size: 0.95rem !important; letter-spacing: 1px; margin: 0;
+    }
+    div.stButton > button:first-child:hover, div[data-testid="stFormSubmitButton"] > button:hover { 
+        background: linear-gradient(135deg, #facc15 0%, #eab308 100%) !important; 
+        border-color: #facc15 !important;
+        box-shadow: 0 0 20px rgba(250, 204, 21, 0.4); 
+    }
     div.stButton > button:first-child:hover p, div[data-testid="stFormSubmitButton"] > button:hover p { color: #020617 !important; }
     
-    .login-header { text-align: center; color: #facc15; font-size: 2.2rem; font-weight: 900; margin-top: 80px; margin-bottom: 5px; }
-    .stDataFrame { font-size: 13px !important; }
+    .login-header { text-align: center; color: #ffffff; font-size: 2.5rem; font-weight: 800; margin-top: 10vh; margin-bottom: 10px; text-shadow: 0 0 20px rgba(250,204,21,0.2); }
 </style>
 """, unsafe_allow_html=True)
 
@@ -91,36 +142,36 @@ PASSWORD_RAHASIA = "216455"
 if "akses_diberikan" not in st.session_state: st.session_state.akses_diberikan = False
 
 if not st.session_state.akses_diberikan:
-    st.markdown("<div class='login-header'>🔒 FX TERMINAL TERKUNCI</div>", unsafe_allow_html=True)
-    st.markdown("<p style='text-align: center; color: #94a3b8; font-size: 0.85rem; margin-bottom: 20px;'>Otorisasi Khusus Forex & XAU.</p>", unsafe_allow_html=True)
+    st.markdown("<div class='login-header'>🔐 FX TERMINAL SECURED</div>", unsafe_allow_html=True)
+    st.markdown("<p style='text-align: center; color: #94a3b8; font-size: 0.9rem; margin-bottom: 30px; letter-spacing: 1px;'>INSTITUTIONAL GRADE ALGORITHMIC TRADING</p>", unsafe_allow_html=True)
     
-    col1, col2, col3 = st.columns([1, 4, 1])
+    col1, col2, col3 = st.columns([1, 2.5, 1])
     with col2:
         with st.form(key="login_form"):
-            user_input = st.text_input("👤 Username:")
-            pwd_input = st.text_input("🔑 Password:", type="password")
+            user_input = st.text_input("👤 Username Identification:")
+            pwd_input = st.text_input("🔑 Passcode:", type="password")
             st.markdown("<br>", unsafe_allow_html=True)
-            if st.form_submit_button("VERIFIKASI AKSES", use_container_width=True):
+            if st.form_submit_button("AUTHORIZE ACCESS", use_container_width=True):
                 if user_input.strip().lower() == USERNAME_RAHASIA.lower() and pwd_input.strip() == PASSWORD_RAHASIA:
                     st.session_state.akses_diberikan = True
                     if hasattr(st, 'rerun'): st.rerun()
                     else: st.experimental_rerun()
-                else: st.error("Akses Ditolak!")
+                else: st.error("❌ Access Denied. Invalid Credentials.")
     st.stop()
 
 # ==========================================
 # 2. FUNGSI PEMROSESAN FOREX
 # ==========================================
 def get_waktu_wib():
-    return datetime.now(pytz.timezone('Asia/Jakarta')).strftime("%d %b %Y - %H:%M WIB")
+    return datetime.now(pytz.timezone('Asia/Jakarta')).strftime("%d %b %Y • %H:%M WIB")
 
 roster_forex = ["EURUSD=X", "GBPUSD=X", "USDJPY=X", "AUDUSD=X", "USDCAD=X", "USDCHF=X", "NZDUSD=X", "XAUUSD=X"]
 nama_pairs = {"EURUSD=X": "EUR/USD", "GBPUSD=X": "GBP/USD", "USDJPY=X": "USD/JPY", "AUDUSD=X": "AUD/USD", "USDCAD=X": "USD/CAD", "USDCHF=X": "USD/CHF", "NZDUSD=X": "NZD/USD", "XAUUSD=X": "GOLD (XAU/USD)"}
 
 def format_fx(ticker, val):
     if pd.isna(val): return "-"
-    if "JPY" in ticker or "XAU" in ticker: return f"{val:.2f}"
-    return f"{val:.4f}"
+    if "JPY" in ticker or "XAU" in ticker: return f"{val:.3f}"
+    return f"{val:.5f}" # Presisi profesional
 
 @st.cache_data(ttl=300, show_spinner=False)
 def fetch_dxy():
@@ -188,7 +239,7 @@ def fetch_single_forex(ticker, mode_tf):
             "TICKER": ticker, "NAMA": nama_pairs[ticker], "HARGA": close, 
             "RSI": round(rsi, 2), "ATR": atr, "PIVOT": pivot, "EMA20": ema20,
             "UP_EMA20": close > ema20, "MACD_BULL": macd_val > macd_sig,
-            "RAW_DF": df.tail(100) 
+            "RAW_DF": df.tail(120) 
         }
     except: return None
 
@@ -196,18 +247,24 @@ def fetch_single_forex(ticker, mode_tf):
 # 4. SIDEBAR (CYBER COMMAND CENTER)
 # ==========================================
 with st.sidebar:
-    st.markdown("<h2 style='color: #facc15; font-size: 1.35rem; font-weight: 900; margin-bottom: 0px; text-align: left; margin-left: -5px; white-space: nowrap;'>👨‍💻 JIHAN-GHINA FX</h2>", unsafe_allow_html=True)
-    st.markdown("<p style='text-align: left; margin-left: 20px; color: #94a3b8; font-size: 0.7rem; letter-spacing: 2px; margin-bottom: 15px;'>FOREX & GOLD v8.9</p>", unsafe_allow_html=True)
+    st.markdown("<h2 style='color: #ffffff; font-size: 1.4rem; font-weight: 800; text-align: left; margin-bottom: 2px;'>❖ JIHAN-GHINA FX</h2>", unsafe_allow_html=True)
+    st.markdown("<p style='text-align: left; color: #fbbf24; font-size: 0.65rem; letter-spacing: 3px; font-weight: 700; margin-bottom: 20px;'>PRO MAX v8.9</p>", unsafe_allow_html=True)
     
     st.markdown("""
-    <div style='background: rgba(30, 41, 59, 0.4); border: 1px solid rgba(255,255,255,0.05); border-radius: 8px; padding: 10px; margin-bottom: 20px; border-left: 3px solid #10b981;'>
-        <div style='font-size: 0.65rem; color: #94a3b8; letter-spacing: 1px; margin-bottom: 5px;'>SYSTEM STATUS</div>
-        <div style='font-size: 0.8rem; color: #10b981; margin-bottom: 2px;'>🟢 FX Engine: <strong>Online</strong></div>
-        <div style='font-size: 0.8rem; color: #38bdf8;'>⚡ Live Rates: <strong>Synced</strong></div>
+    <div style='background: rgba(16, 185, 129, 0.1); border: 1px solid rgba(16, 185, 129, 0.3); border-radius: 8px; padding: 12px; margin-bottom: 25px;'>
+        <div style='font-size: 0.6rem; color: #10b981; letter-spacing: 1.5px; text-transform: uppercase; font-weight: 700; margin-bottom: 8px;'>SERVER STATUS</div>
+        <div style='display: flex; justify-content: space-between; align-items: center; margin-bottom: 5px;'>
+            <span style='font-size: 0.8rem; color: #cbd5e1;'>FX Engine</span>
+            <span style='font-size: 0.75rem; color: #10b981; font-weight: 600;'>🟢 ONLINE</span>
+        </div>
+        <div style='display: flex; justify-content: space-between; align-items: center;'>
+            <span style='font-size: 0.8rem; color: #cbd5e1;'>Data Feed</span>
+            <span style='font-size: 0.75rem; color: #38bdf8; font-weight: 600;'>⚡ SYNCED</span>
+        </div>
     </div>
     """, unsafe_allow_html=True)
     
-    tf_pilihan = st.selectbox("⏱️ Timeframe Analisis:", ["15 Menit", "1 Jam", "4 Jam", "1 Hari (Daily)"], index=3, label_visibility="visible")
+    tf_pilihan = st.selectbox("⏱️ Timeframe Analysis", ["15 Menit", "1 Jam", "4 Jam", "1 Hari (Daily)"], index=3)
     
     tf_berubah = False
     if tf_pilihan != st.session_state.current_tf:
@@ -216,14 +273,14 @@ with st.sidebar:
         
     st.markdown("<br>", unsafe_allow_html=True)
     
-    if st.button("🔄 SCAN MAJOR PAIRS", use_container_width=True) or tf_berubah:
+    if st.button("📡 EXECUTE SCAN", use_container_width=True) or tf_berubah:
         st.session_state.scan_clicked = True
         st.cache_data.clear()
         st.session_state.raw_forex = []
         
-        bar = st.progress(0, text=f"Mengkalibrasi Harga Global ({st.session_state.current_tf})...")
+        bar = st.progress(0, text=f"Calibrating Global Rates ({st.session_state.current_tf})...")
         for i, t in enumerate(roster_forex):
-            bar.progress((i + 1) / len(roster_forex), text=f"Scanning {nama_pairs[t]}...")
+            bar.progress((i + 1) / len(roster_forex), text=f"Analyzing {nama_pairs[t]}...")
             data = fetch_single_forex(t, st.session_state.current_tf)
             if data: st.session_state.raw_forex.append(data)
             gc.collect()
@@ -239,8 +296,8 @@ with st.sidebar:
         if hasattr(st, 'rerun'): st.rerun()
         else: st.experimental_rerun()
         
-    st.markdown("<br><br>", unsafe_allow_html=True)
-    if st.button("🚪 LOGOUT", use_container_width=True):
+    st.markdown("<br>", unsafe_allow_html=True)
+    if st.button("🔌 DISCONNECT", use_container_width=True):
         st.session_state.akses_diberikan = False
         st.session_state.scan_clicked = False
         if hasattr(st, 'rerun'): st.rerun()
@@ -249,12 +306,12 @@ with st.sidebar:
 # ==========================================
 # 5. HEADER & MATRIKS UTAMA
 # ==========================================
-st.markdown("<h1>🌍 Global Macro Intelligence</h1>", unsafe_allow_html=True)
+st.markdown("<h1>GLOBAL MACRO INTELLIGENCE</h1>", unsafe_allow_html=True)
 
 col_h1, col_h2 = st.columns([3.5, 1.5])
 with col_h1:
-    upd = st.session_state.last_update if st.session_state.last_update else "Standby..."
-    st.markdown(f"<p style='font-size: 0.9rem;'>🕒 Update: <span style='color:#facc15;'>{upd}</span><br>Algoritma FX berbasis Volatilitas (ATR) & Momentum.</p>", unsafe_allow_html=True)
+    upd = st.session_state.last_update if st.session_state.last_update else "System on Standby"
+    st.markdown(f"<p style='font-size: 0.95rem;'>📡 Last Sync: <span style='color:#facc15; font-weight:600;'>{upd}</span><br>Algorithmic trend detection utilizing Dynamic ATR Volatility & Momentum.</p>", unsafe_allow_html=True)
 
 dxy_val, dxy_chg, dxy_pct = fetch_dxy()
 with col_h2:
@@ -262,19 +319,19 @@ with col_h2:
         w_panah = "▲" if dxy_chg >= 0 else "▼"
         w_garis = '#10b981' if dxy_chg >= 0 else '#f43f5e'
         st.markdown(f"""
-        <div class="premium-card ihsg-box" style="border-left: 5px solid {w_garis};">
+        <div class="premium-card ihsg-box" style="border-right: 5px solid {w_garis}; border-left: none; padding-right: 25px;">
             <span class="ihsg-title">US DOLLAR INDEX (DXY)</span>
-            <span class="ihsg-score" style="color: {w_garis};">{dxy_val:,.2f}</span>
-            <span style="color: {w_garis}; font-weight: 800; font-size: 0.9rem;">{w_panah} {dxy_chg:+,.2f} ({dxy_pct:+.2f}%)</span>
+            <span class="ihsg-score" style="color: {w_garis};">{dxy_val:,.3f}</span>
+            <span style="color: {w_garis}; font-weight: 700; font-size: 0.85rem; letter-spacing: 1px;">{w_panah} {dxy_chg:+,.3f} ({dxy_pct:+.2f}%)</span>
         </div>
         """, unsafe_allow_html=True)
 
-st.markdown("---")
+st.markdown("<hr>", unsafe_allow_html=True)
 
 if not st.session_state.scan_clicked or not st.session_state.raw_forex:
-    st.info("👈 Sistem aman dan standby. Tekan '🔄 SCAN MAJOR PAIRS' di sidebar.")
+    st.info("💡 System initialized. Click 'EXECUTE SCAN' in the control panel to begin market analysis.")
 else:
-    st.markdown("<h3>🛰️ Pro Max FX Action Plan</h3>", unsafe_allow_html=True)
+    st.markdown("<h3 style='font-size: 1.5rem; font-weight: 800; color: #ffffff;'>⚡ ACTION PLAN MATRIX</h3>", unsafe_allow_html=True)
     
     hasil_fx = []
     for raw in st.session_state.raw_forex:
@@ -287,105 +344,106 @@ else:
         elif raw["RSI"] < 30: skor += 20
         
         if skor >= 70: 
-            rek = "🟢 LONG (BUY)"
+            rek = "🟢 LONG"
             entry = raw["EMA20"] if raw["HARGA"] > raw["EMA20"] else raw["HARGA"]
             sl = entry - (1.5 * raw["ATR"])
             tp = entry + (2.0 * raw["ATR"])
         elif skor <= 30: 
-            rek = "🔴 SHORT (SELL)"
+            rek = "🔴 SHORT"
             entry = raw["EMA20"] if raw["HARGA"] < raw["EMA20"] else raw["HARGA"]
             sl = entry + (1.5 * raw["ATR"])
             tp = entry - (2.0 * raw["ATR"])
         else: 
-            rek = "🟡 WAIT / RANGE"
+            rek = "🟡 WAIT"
             entry, sl, tp = raw["HARGA"], raw["HARGA"], raw["HARGA"]
             
         hasil_fx.append({
-            "PAIR": raw["NAMA"], "HARGA NOW": format_fx(raw["TICKER"], raw["HARGA"]),
-            "ENTRY AREA": format_fx(raw["TICKER"], entry),
-            "TAKE PROFIT (TP)": format_fx(raw["TICKER"], tp),
-            "STOP LOSS (SL)": format_fx(raw["TICKER"], sl),
-            "PIVOT POINT": format_fx(raw["TICKER"], raw["PIVOT"]),
-            "RSI": f"{raw['RSI']:.1f}", "ACTION": rek
+            "ASSET": raw["NAMA"], 
+            "CURRENT PRICE": format_fx(raw["TICKER"], raw["HARGA"]),
+            "ENTRY ZONE": format_fx(raw["TICKER"], entry),
+            "TARGET (TP)": format_fx(raw["TICKER"], tp),
+            "RISK (SL)": format_fx(raw["TICKER"], sl),
+            "PIVOT": format_fx(raw["TICKER"], raw["PIVOT"]),
+            "RSI": f"{raw['RSI']:.1f}", 
+            "SIGNAL": rek
         })
         
     df_fx = pd.DataFrame(hasil_fx)
     
     m1, m2, m3 = st.columns(3)
-    with m1: st.markdown(f"<div class='premium-card' style='border-left: 5px solid #10b981;'><div class='strat-label' style='color:#34d399;'>🟢 TOTAL LONG</div><div class='strat-num' style='color:#f8fafc;'>{sum('LONG' in x for x in df_fx['ACTION'])}</div></div>", unsafe_allow_html=True)
-    with m2: st.markdown(f"<div class='premium-card' style='border-left: 5px solid #fbbf24;'><div class='strat-label' style='color:#fbbf24;'>🟡 WAIT & SEE</div><div class='strat-num' style='color:#f8fafc;'>{sum('WAIT' in x for x in df_fx['ACTION'])}</div></div>", unsafe_allow_html=True)
-    with m3: st.markdown(f"<div class='premium-card' style='border-left: 5px solid #f43f5e;'><div class='strat-label' style='color:#fb7185;'>🔴 TOTAL SHORT</div><div class='strat-num' style='color:#f8fafc;'>{sum('SHORT' in x for x in df_fx['ACTION'])}</div></div>", unsafe_allow_html=True)
+    with m1: st.markdown(f"<div class='premium-card' style='border-top: 3px solid #10b981;'><div class='strat-label' style='color:#34d399;'>BULLISH BIAS</div><div class='strat-num' style='color:#ffffff;'>{sum('LONG' in x for x in df_fx['SIGNAL'])}</div></div>", unsafe_allow_html=True)
+    with m2: st.markdown(f"<div class='premium-card' style='border-top: 3px solid #fbbf24;'><div class='strat-label' style='color:#fbbf24;'>NEUTRAL / CHOPPY</div><div class='strat-num' style='color:#ffffff;'>{sum('WAIT' in x for x in df_fx['SIGNAL'])}</div></div>", unsafe_allow_html=True)
+    with m3: st.markdown(f"<div class='premium-card' style='border-top: 3px solid #f43f5e;'><div class='strat-label' style='color:#fb7185;'>BEARISH BIAS</div><div class='strat-num' style='color:#ffffff;'>{sum('SHORT' in x for x in df_fx['SIGNAL'])}</div></div>", unsafe_allow_html=True)
     
-    st.write(" ")
+    st.markdown("<br>", unsafe_allow_html=True)
     
     def style_fx(row):
         styles = []
-        if 'LONG' in row['ACTION']: bg = 'background-color: rgba(16, 185, 129, 0.1); color: #34d399;'
-        elif 'SHORT' in row['ACTION']: bg = 'background-color: rgba(244, 63, 94, 0.1); color: #fb7185;'
-        else: bg = 'background-color: rgba(245, 158, 11, 0.1); color: #fbbf24;'
+        if 'LONG' in row['SIGNAL']: bg = 'background-color: rgba(16, 185, 129, 0.15); color: #34d399; font-weight: 800;'
+        elif 'SHORT' in row['SIGNAL']: bg = 'background-color: rgba(244, 63, 94, 0.15); color: #fb7185; font-weight: 800;'
+        else: bg = 'background-color: rgba(250, 204, 21, 0.1); color: #fbbf24; font-weight: 800;'
         
         for c, val in row.items():
-            if c == 'PAIR': styles.append('font-weight: 900; color: #facc15;')
-            elif c == 'TAKE PROFIT (TP)': styles.append('color: #10b981; font-weight: 800;') 
-            elif c == 'STOP LOSS (SL)': styles.append('color: #f43f5e; font-weight: 800;')  
-            elif c == 'ENTRY AREA': styles.append('color: #38bdf8; font-weight: 800;')  
-            elif c == 'PIVOT POINT': styles.append('color: #94a3b8;')
-            elif c == 'ACTION': styles.append(bg)
+            if c == 'ASSET': styles.append('font-weight: 900; color: #ffffff;')
+            elif c == 'TARGET (TP)': styles.append('color: #10b981; font-weight: 700;') 
+            elif c == 'RISK (SL)': styles.append('color: #f43f5e; font-weight: 700;')  
+            elif c == 'ENTRY ZONE': styles.append('color: #38bdf8; font-weight: 700;')  
+            elif c == 'PIVOT': styles.append('color: #64748b;')
+            elif c == 'CURRENT PRICE': styles.append('font-weight: 600; color: #cbd5e1;')
+            elif c == 'SIGNAL': styles.append(bg)
             elif c == 'RSI':
                 try:
                     r = float(val)
-                    if r > 70: styles.append('color: #f43f5e; font-weight: 800;') 
-                    elif r < 30: styles.append('color: #10b981; font-weight: 800;') 
-                    else: styles.append('')
+                    if r >= 70: styles.append('color: #f43f5e; font-weight: 800;') 
+                    elif r <= 30: styles.append('color: #10b981; font-weight: 800;') 
+                    else: styles.append('color: #94a3b8;')
                 except: styles.append('')
             else: styles.append('')
         return styles
 
-    st.markdown("📄 **Forex Matrix (ATR-Based Stops)**")
-    
     st.dataframe(df_fx.style.apply(style_fx, axis=1), use_container_width=True, hide_index=True)
     
     # ==========================================
     # 6. MASTERPIECE FX SIGNAL & PLOTLY CHART
     # ==========================================
-    st.markdown("---")
-    st.markdown("<h3 style='color: #f8fafc; font-weight: 800; margin-bottom: 1rem;'>🎯 FX Masterpiece Signal & Price Action</h3>", unsafe_allow_html=True)
+    st.markdown("<hr>", unsafe_allow_html=True)
+    st.markdown("<h3 style='font-size: 1.5rem; font-weight: 800; color: #ffffff;'>🎯 TECHNICAL VALIDATION & PRICE ACTION</h3>", unsafe_allow_html=True)
     
-    scanned_names = df_fx['PAIR'].tolist()
-    pilihan_fx_nama = st.selectbox("⚡ Evaluasi Teknikal & Volatilitas Pair:", scanned_names)
+    scanned_names = df_fx['ASSET'].tolist()
+    pilihan_fx_nama = st.selectbox("Select Asset for Deep Validation:", scanned_names)
     
     pilihan_fx_ticker = [k for k, v in nama_pairs.items() if v == pilihan_fx_nama][0]
     
-    row_data = df_fx[df_fx['PAIR'] == pilihan_fx_nama].iloc[0]
-    aksi = row_data['ACTION']
+    row_data = df_fx[df_fx['ASSET'] == pilihan_fx_nama].iloc[0]
+    aksi = row_data['SIGNAL']
     
     if "LONG" in aksi: 
-        final = "🚀 STRONG BULLISH BIAS"
+        final = "STRONG BULLISH"
         clr = "#10b981"
-        desc = f"Momentum mendukung kenaikan di timeframe {st.session_state.current_tf}. Fokus cari peluang BUY dekat EMA20."
+        desc = f"Momentum analysis indicates upward structure on {st.session_state.current_tf}. Seek entries on pullbacks to EMA20."
     elif "SHORT" in aksi:
-        final = "🩸 STRONG BEARISH BIAS"
+        final = "STRONG BEARISH"
         clr = "#f43f5e"
-        desc = f"Tekanan jual dominan di timeframe {st.session_state.current_tf}. Fokus cari peluang SELL dekat EMA20."
+        desc = f"Selling pressure dictates structure on {st.session_state.current_tf}. Seek entries on rallies to EMA20."
     else:
-        final = "⚖️ RANGE BOUND (CHOPPY)"
+        final = "RANGE BOUND"
         clr = "#fbbf24"
-        desc = "Harga sedang bolak-balik tanpa arah jelas. Lebih baik Wait & See atau scalping range pendek."
+        desc = "Asset is experiencing consolidation. Suggest remaining flat or trading extreme ranges (scalping)."
 
-    col_sig, col_chart = st.columns([1, 2])
+    col_sig, col_chart = st.columns([1, 2.2])
     
     with col_sig:
         st.markdown(f"""
-        <div class='premium-card' style='border-left: 5px solid {clr}; height: 100%; display: flex; flex-direction: column; justify-content: center;'>
+        <div class='premium-card' style='border: 1px solid {clr}; background: linear-gradient(180deg, rgba(15,23,42,0.6) 0%, rgba(2,6,23,0.8) 100%); height: 100%; display: flex; flex-direction: column; justify-content: center;'>
             <div style='text-align: center;'>
-                <span style='color: #94a3b8; font-size: 0.75rem; letter-spacing: 2px;'>STATUS ALGORITMA</span><br>
-                <span style='color: {clr}; font-weight: 900; font-size: 1.6rem; display: block; margin: 10px 0;'>{final}</span>
-                <span style='color: #cbd5e1; font-size: 0.85rem;'>{desc}</span>
+                <span style='color: #64748b; font-size: 0.7rem; letter-spacing: 2px; font-weight:700;'>ALGORITHMIC VERDICT</span><br>
+                <span style='color: {clr}; font-weight: 900; font-size: 1.7rem; display: block; margin: 15px 0; letter-spacing: -0.5px;'>{final}</span>
+                <span style='color: #94a3b8; font-size: 0.85rem; line-height: 1.4;'>{desc}</span>
             </div>
-            <hr style='border-color: rgba(255,255,255,0.05); margin: 15px 0;'>
-            <div style='display: flex; justify-content: space-around; text-align: center; color: #94a3b8; font-size: 0.8rem;'>
-                <div>RSI<br><strong style='color:#f8fafc; font-size:1.1rem;'>{row_data['RSI']}</strong></div>
-                <div>ENTRY PLAN<br><strong style='color:#38bdf8; font-size:1.1rem;'>{row_data['ENTRY AREA']}</strong></div>
+            <hr class='thin-divider' style='background: linear-gradient(to right, rgba(255,255,255,0), {clr}, rgba(255,255,255,0)); opacity: 0.3;'>
+            <div style='display: flex; justify-content: space-around; text-align: center; color: #64748b; font-size: 0.75rem; font-weight: 600; letter-spacing: 1px;'>
+                <div>RSI<br><strong style='color:#ffffff; font-size:1.2rem; font-weight: 800;'>{row_data['RSI']}</strong></div>
+                <div>OPTIMAL ENTRY<br><strong style='color:#38bdf8; font-size:1.2rem; font-weight: 800;'>{row_data['ENTRY ZONE']}</strong></div>
             </div>
         </div>
         """, unsafe_allow_html=True)
@@ -395,41 +453,52 @@ else:
         if raw_target and "RAW_DF" in raw_target:
             df_chart = raw_target["RAW_DF"]
             fig = go.Figure()
-            fig.add_trace(go.Candlestick(x=df_chart.index, open=df_chart['Open'], high=df_chart['High'], low=df_chart['Low'], close=df_chart['Close'], name='Price'))
-            fig.add_trace(go.Scatter(x=df_chart.index, y=df_chart['EMA20'], mode='lines', line=dict(color='#00f2fe', width=1.5), name='EMA20'))
+            
+            # Candlestick Premium Colors
+            fig.add_trace(go.Candlestick(
+                x=df_chart.index, open=df_chart['Open'], high=df_chart['High'], low=df_chart['Low'], close=df_chart['Close'], 
+                name='Price Action',
+                increasing_line_color='#10b981', increasing_fillcolor='#10b981',
+                decreasing_line_color='#f43f5e', decreasing_fillcolor='#f43f5e'
+            ))
+            
+            # EMA Glowing Line
+            fig.add_trace(go.Scatter(
+                x=df_chart.index, y=df_chart['EMA20'], mode='lines', 
+                line=dict(color='#0ea5e9', width=2), name='EMA 20'
+            ))
             
             fig.update_layout(
-                margin=dict(l=10, r=10, t=10, b=10),
+                margin=dict(l=5, r=5, t=30, b=5),
                 paper_bgcolor='rgba(0,0,0,0)', plot_bgcolor='rgba(0,0,0,0)',
-                font=dict(color='#94a3b8'),
-                legend=dict(orientation="h", yanchor="bottom", y=1.02, xanchor="center", x=0.5, font=dict(size=10)),
-                dragmode=False, xaxis_rangeslider_visible=False, hovermode='x unified', height=300
+                font=dict(color='#94a3b8', family='Plus Jakarta Sans'),
+                legend=dict(orientation="h", yanchor="bottom", y=1.02, xanchor="center", x=0.5, font=dict(size=11, color='#cbd5e1')),
+                dragmode='pan', xaxis_rangeslider_visible=False, hovermode='x unified', height=360,
+                title=dict(text=f"Live Order Flow: {pilihan_fx_nama}", font=dict(size=14, color="#facc15", weight='bold'))
             )
-            fig.update_xaxes(fixedrange=True, showgrid=False)
-            fig.update_yaxes(fixedrange=True, gridcolor='rgba(255,255,255,0.05)')
             
-            st.markdown(f"<h5 style='color: #facc15; text-align:center; font-size: 0.85rem; margin-bottom: 0px;'>📈 Live Chart: {pilihan_fx_nama} ({st.session_state.current_tf})</h5>", unsafe_allow_html=True)
-            st.plotly_chart(fig, use_container_width=True, config={'displayModeBar': False, 'scrollZoom': False})
+            fig.update_xaxes(showgrid=False, zeroline=False, showline=False)
+            fig.update_yaxes(showgrid=True, gridcolor='rgba(255,255,255,0.03)', zeroline=False, side='right')
+            
+            st.plotly_chart(fig, use_container_width=True, config={'displayModeBar': False, 'scrollZoom': True})
         else:
-            st.info("⚠️ Silakan klik SCAN MAJOR PAIRS untuk memuat grafik historis.")
+            st.info("⚠️ Execute scan to render historical chart data.")
 
     # ==========================================
     # 7. KALENDER EKONOMI (MQL5 TABLE EDITION)
     # ==========================================
-    st.markdown("---")
-    st.markdown("<h3 style='color: #f8fafc; font-weight: 800; margin-bottom: 1rem;'>📅 Global Economic Calendar</h3>", unsafe_allow_html=True)
-    st.markdown("<p style='color: #94a3b8; font-size: 0.85rem; margin-bottom: 15px;'>Jadwal rilis berita (NFP, CPI, The Fed). Tabel otomatis <i>update</i> secara live saat waktu rilis tiba.</p>", unsafe_allow_html=True)
+    st.markdown("<hr>", unsafe_allow_html=True)
+    st.markdown("<h3 style='font-size: 1.5rem; font-weight: 800; color: #ffffff;'>📰 MACROECONOMIC CALENDAR</h3>", unsafe_allow_html=True)
+    st.markdown("<p style='color: #94a3b8; font-size: 0.9rem; margin-bottom: 20px;'>Monitor high-impact news releases (NFP, CPI, FOMC) to anticipate institutional volatility spikes.</p>", unsafe_allow_html=True)
 
-    # Menggunakan MQL5 Calendar Widget yang memiliki Header Kolom lengkap (Time, Currency, Impact, Event, Actual, Forecast, Previous)
     components.html(
         """
         <div id="economicCalendarWidget"></div>
         <script async type="text/javascript" data-type="calendar-widget" src="https://www.mql5.com/js/widgets/calendar/widget.js?v=1">
-        {"width":"100%","height":"500","mode":"1","colorTheme":"1"}
+        {"width":"100%","height":"550","mode":"1","colorTheme":"1"}
         </script>
         """,
-        height=500,
+        height=550,
     )
 
-st.markdown("---")
-st.markdown("<p style='text-align: center; color: #475569; font-size: 0.75rem;'>⚡ JIHAN-GHINA FX ENGINE • SECURE ALGORITHMIC TERMINAL v8.9</p>", unsafe_allow_html=True)
+st.markdown("<br><p style='text-align: center; color: #475569; font-size: 0.75rem; letter-spacing: 2px; font-weight: 600;'>⚡ JIHAN-GHINA FX ENGINE • PROPRIETARY TRADING TERMINAL v8.9</p>", unsafe_allow_html=True)

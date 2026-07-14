@@ -9,7 +9,7 @@ import gc
 import json
 import os
 import plotly.graph_objects as go
-import streamlit.components.v1 as components # Modul untuk Kalender Ekonomi
+import streamlit.components.v1 as components 
 
 warnings.filterwarnings('ignore')
 
@@ -41,7 +41,7 @@ if "current_tf" not in st.session_state:
 # ==========================================
 # 1. KONFIGURASI HALAMAN & UI STYLE
 # ==========================================
-st.set_page_config(page_title="JIHAN-GHINA FX Pro Max v8.8", page_icon="💱", layout="wide")
+st.set_page_config(page_title="JIHAN-GHINA FX Pro Max v8.9", page_icon="💱", layout="wide")
 
 st.markdown("""
 <style>
@@ -148,14 +148,13 @@ def fetch_single_forex(ticker, mode_tf):
     try:
         if "15 Menit" in mode_tf: per, inv = "5d", "15m"
         elif "1 Jam" in mode_tf: per, inv = "1mo", "1h"
-        elif "4 Jam" in mode_tf: per, inv = "1mo", "1h" # Di-resample 4H
-        else: per, inv = "3mo", "1d" # Daily
+        elif "4 Jam" in mode_tf: per, inv = "1mo", "1h" 
+        else: per, inv = "3mo", "1d" 
             
         df = yf.download(ticker, period=per, interval=inv, progress=False)
         if df.empty: return None
         if isinstance(df.columns, pd.MultiIndex): df.columns = [col[0] for col in df.columns]
         
-        # PERBAIKAN BUG DATA 4 JAM FOREX
         if "4 Jam" in mode_tf:
             df = df.resample('4h').agg({'Open':'first', 'High':'max', 'Low':'min', 'Close':'last'}).dropna(subset=['Close'])
             
@@ -189,7 +188,7 @@ def fetch_single_forex(ticker, mode_tf):
             "TICKER": ticker, "NAMA": nama_pairs[ticker], "HARGA": close, 
             "RSI": round(rsi, 2), "ATR": atr, "PIVOT": pivot, "EMA20": ema20,
             "UP_EMA20": close > ema20, "MACD_BULL": macd_val > macd_sig,
-            "RAW_DF": df.tail(100) # Disimpan untuk chart Plotly
+            "RAW_DF": df.tail(100) 
         }
     except: return None
 
@@ -198,7 +197,7 @@ def fetch_single_forex(ticker, mode_tf):
 # ==========================================
 with st.sidebar:
     st.markdown("<h2 style='color: #facc15; font-size: 1.35rem; font-weight: 900; margin-bottom: 0px; text-align: left; margin-left: -5px; white-space: nowrap;'>👨‍💻 JIHAN-GHINA FX</h2>", unsafe_allow_html=True)
-    st.markdown("<p style='text-align: left; margin-left: 20px; color: #94a3b8; font-size: 0.7rem; letter-spacing: 2px; margin-bottom: 15px;'>FOREX & GOLD v8.8</p>", unsafe_allow_html=True)
+    st.markdown("<p style='text-align: left; margin-left: 20px; color: #94a3b8; font-size: 0.7rem; letter-spacing: 2px; margin-bottom: 15px;'>FOREX & GOLD v8.9</p>", unsafe_allow_html=True)
     
     st.markdown("""
     <div style='background: rgba(30, 41, 59, 0.4); border: 1px solid rgba(255,255,255,0.05); border-radius: 8px; padding: 10px; margin-bottom: 20px; border-left: 3px solid #10b981;'>
@@ -208,7 +207,6 @@ with st.sidebar:
     </div>
     """, unsafe_allow_html=True)
     
-    # Deteksi Perubahan Timeframe untuk Auto-Scan
     tf_pilihan = st.selectbox("⏱️ Timeframe Analisis:", ["15 Menit", "1 Jam", "4 Jam", "1 Hari (Daily)"], index=3, label_visibility="visible")
     
     tf_berubah = False
@@ -218,7 +216,6 @@ with st.sidebar:
         
     st.markdown("<br>", unsafe_allow_html=True)
     
-    # TRIGGER: Jika tombol diklik ATAU timeframe berubah
     if st.button("🔄 SCAN MAJOR PAIRS", use_container_width=True) or tf_berubah:
         st.session_state.scan_clicked = True
         st.cache_data.clear()
@@ -234,7 +231,6 @@ with st.sidebar:
         bar.empty()
         st.session_state.last_update = get_waktu_wib()
         
-        # Simpan state (kecuali RAW_DF karena tidak bisa di-JSON)
         cache_safe_data = [{k: v for k, v in item.items() if k != 'RAW_DF'} for item in st.session_state.raw_forex]
         try:
             with open(CACHE_FILE, "w") as f:
@@ -347,7 +343,6 @@ else:
 
     st.markdown("📄 **Forex Matrix (ATR-Based Stops)**")
     
-    # Gunakan fungsi native table agar scrollbar HTML bisa bekerja
     st.dataframe(df_fx.style.apply(style_fx, axis=1), use_container_width=True, hide_index=True)
     
     # ==========================================
@@ -359,7 +354,6 @@ else:
     scanned_names = df_fx['PAIR'].tolist()
     pilihan_fx_nama = st.selectbox("⚡ Evaluasi Teknikal & Volatilitas Pair:", scanned_names)
     
-    # Ambil Ticker asli untuk mencari RAW_DF
     pilihan_fx_ticker = [k for k, v in nama_pairs.items() if v == pilihan_fx_nama][0]
     
     row_data = df_fx[df_fx['PAIR'] == pilihan_fx_nama].iloc[0]
@@ -368,7 +362,7 @@ else:
     if "LONG" in aksi: 
         final = "🚀 STRONG BULLISH BIAS"
         clr = "#10b981"
-        desc = f"Momentum dan Trend mendukung kenaikan di timeframe {st.session_state.current_tf}. Fokus cari peluang BUY dekat EMA20."
+        desc = f"Momentum mendukung kenaikan di timeframe {st.session_state.current_tf}. Fokus cari peluang BUY dekat EMA20."
     elif "SHORT" in aksi:
         final = "🩸 STRONG BEARISH BIAS"
         clr = "#f43f5e"
@@ -397,14 +391,11 @@ else:
         """, unsafe_allow_html=True)
 
     with col_chart:
-        # Plotly Candlestick Terkunci (Locked)
         raw_target = next((item for item in st.session_state.raw_forex if item["TICKER"] == pilihan_fx_ticker), None)
         if raw_target and "RAW_DF" in raw_target:
             df_chart = raw_target["RAW_DF"]
             fig = go.Figure()
-            # Candlestick
             fig.add_trace(go.Candlestick(x=df_chart.index, open=df_chart['Open'], high=df_chart['High'], low=df_chart['Low'], close=df_chart['Close'], name='Price'))
-            # Garis EMA20
             fig.add_trace(go.Scatter(x=df_chart.index, y=df_chart['EMA20'], mode='lines', line=dict(color='#00f2fe', width=1.5), name='EMA20'))
             
             fig.update_layout(
@@ -423,32 +414,22 @@ else:
             st.info("⚠️ Silakan klik SCAN MAJOR PAIRS untuk memuat grafik historis.")
 
     # ==========================================
-    # 7. KALENDER EKONOMI (FUNDAMENTAL DATA)
+    # 7. KALENDER EKONOMI (MQL5 TABLE EDITION)
     # ==========================================
     st.markdown("---")
     st.markdown("<h3 style='color: #f8fafc; font-weight: 800; margin-bottom: 1rem;'>📅 Global Economic Calendar</h3>", unsafe_allow_html=True)
-    st.markdown("<p style='color: #94a3b8; font-size: 0.85rem; margin-bottom: 15px;'>Jadwal rilis berita (NFP, CPI, The Fed) sangat menentukan ledakan volatilitas pasar.</p>", unsafe_allow_html=True)
+    st.markdown("<p style='color: #94a3b8; font-size: 0.85rem; margin-bottom: 15px;'>Jadwal rilis berita (NFP, CPI, The Fed). Tabel otomatis <i>update</i> secara live saat waktu rilis tiba.</p>", unsafe_allow_html=True)
 
-    # Widget Kalender Ekonomi TradingView
+    # Menggunakan MQL5 Calendar Widget yang memiliki Header Kolom lengkap (Time, Currency, Impact, Event, Actual, Forecast, Previous)
     components.html(
         """
-        <div class="tradingview-widget-container">
-          <div class="tradingview-widget-container__widget"></div>
-          <script type="text/javascript" src="https://s3.tradingview.com/external-embedding/embed-widget-events.js" async>
-          {
-          "colorTheme": "dark",
-          "isTransparent": true,
-          "width": "100%",
-          "height": "450",
-          "locale": "id",
-          "importanceFilter": "-1,0,1",
-          "currencyFilter": "USD,EUR,GBP,JPY,AUD,CAD,CHF,NZD"
-          }
-          </script>
-        </div>
+        <div id="economicCalendarWidget"></div>
+        <script async type="text/javascript" data-type="calendar-widget" src="https://www.mql5.com/js/widgets/calendar/widget.js?v=1">
+        {"width":"100%","height":"500","mode":"1","colorTheme":"1"}
+        </script>
         """,
-        height=450,
+        height=500,
     )
 
 st.markdown("---")
-st.markdown("<p style='text-align: center; color: #475569; font-size: 0.75rem;'>⚡ JIHAN-GHINA FX ENGINE • SECURE ALGORITHMIC TERMINAL v8.8</p>", unsafe_allow_html=True)
+st.markdown("<p style='text-align: center; color: #475569; font-size: 0.75rem;'>⚡ JIHAN-GHINA FX ENGINE • SECURE ALGORITHMIC TERMINAL v8.9</p>", unsafe_allow_html=True)

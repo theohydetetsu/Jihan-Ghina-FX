@@ -140,29 +140,36 @@ nama_pairs = {"EURUSD=X": "EUR/USD", "GBPUSD=X": "GBP/USD", "USDJPY=X": "USD/JPY
 
 def fetch_mtf_forex(ticker):
     try:
+        # Unduh 1 jam, lalu resample agar cepat dan tidak diblokir API
         df_h1 = yf.download(ticker, period="3mo", interval="1h", progress=False)
         if df_h1.empty: return None
         if isinstance(df_h1.columns, pd.MultiIndex): df_h1.columns = [col[0] for col in df_h1.columns]
         df_h1 = df_h1.ffill()
         
+        # Resample ke H4 dan D1
         df_h4 = df_h1.resample('4h').agg({'Open':'first', 'High':'max', 'Low':'min', 'Close':'last'}).dropna()
         df_d1 = df_h1.resample('1d').agg({'Open':'first', 'High':'max', 'Low':'min', 'Close':'last'}).dropna()
 
+        # Kalkulasi Trend H1
         df_h1['EMA20'] = df_h1['Close'].ewm(span=20, adjust=False).mean()
         df_h1['STD'] = df_h1['Close'].rolling(20).std()
         df_h1['BB_UP'] = df_h1['EMA20'] + (2 * df_h1['STD'])
         df_h1['BB_LOW'] = df_h1['EMA20'] - (2 * df_h1['STD'])
         h1_last = df_h1.iloc[-1]
         
+        # ATR H1 (Untuk SL Dinamis)
         tr = np.max([df_h1['High']-df_h1['Low'], np.abs(df_h1['High']-df_h1['Close'].shift()), np.abs(df_h1['Low']-df_h1['Close'].shift())], axis=0)
         df_h1['ATR'] = pd.Series(tr, index=df_h1.index).rolling(14).mean()
 
+        # Kalkulasi Trend H4
         df_h4['EMA20'] = df_h4['Close'].ewm(span=20, adjust=False).mean()
         h4_trend = "BULL" if float(df_h4.iloc[-1]['Close']) > float(df_h4.iloc[-1]['EMA20']) else "BEAR"
 
+        # Kalkulasi Trend D1
         df_d1['EMA50'] = df_d1['Close'].ewm(span=50, adjust=False).mean()
         d1_trend = "BULL" if float(df_d1.iloc[-1]['Close']) > float(df_d1.iloc[-1]['EMA50']) else "BEAR"
 
+        # Confluence Check
         h1_trend = "BULL" if float(h1_last['Close']) > float(h1_last['EMA20']) else "BEAR"
         confluence_score = 0
         if h1_trend == h4_trend == d1_trend == "BULL": confluence_score = 30
@@ -174,7 +181,7 @@ def fetch_mtf_forex(ticker):
             "BB_UP": float(h1_last['BB_UP']), "BB_LOW": float(h1_last['BB_LOW']), 
             "MTF_TREND": f"D1:{d1_trend} | H4:{h4_trend} | H1:{h1_trend}",
             "CONFLUENCE": confluence_score,
-            "RAW_DF": df_h1.tail(120) 
+            "RAW_DF": df_h1.tail(120) # Kirim data H1 untuk charting presisi
         }
     except: return None
 
@@ -202,38 +209,14 @@ with st.sidebar:
         st.rerun()
 
 # ==========================================
-# 5. DASHBOARD UTAMA & MARKET SESSION
+# 5. DASHBOARD UTAMA
 # ==========================================
 st.markdown("<p class='title-v10'>🏛️ QUANTUM PRO v10.0</p>", unsafe_allow_html=True)
 st.markdown(f"<p style='color:#9ca3af;'>The Ultimate Edition | Last Sync: <span style='color:#d4af37;'>{st.session_state.last_update or 'Awaiting Scan'}</span> | Engine: MTF Confluence</p>", unsafe_allow_html=True)
 
-# MODUL DETEKSI SESI PASAR
-def get_market_session():
-    current_hour = datetime.now(pytz.timezone('Asia/Jakarta')).hour
-    
-    if 5 <= current_hour < 14:
-        return "TOKYO/SYDNEY (Sesi Asia)", "🟡 Konsolidasi / Volatilitas Rendah (Hati-hati Fakeout)", "#fbbf24"
-    elif 14 <= current_hour < 19:
-        return "LONDON (Sesi Eropa)", "🟢 Momentum Terbentuk / Likuiditas Tinggi", "#10b981"
-    elif 19 <= current_hour < 22:
-        return "LONDON + NEW YORK OVERLAP", "🔥 ZONA TEMPUR / Volatilitas & Likuiditas Maksimal", "#f43f5e"
-    elif 22 <= current_hour <= 23 or 0 <= current_hour < 4:
-        return "NEW YORK (Sesi AS)", "🟠 Volatilitas Tinggi / Rawan Berita Makro", "#f97316"
-    else:
-        return "MARKET TRANSITION", "⚪ Penyesuaian Harga / Spread Sedang Melebar", "#9ca3af"
-
-sesi_aktif, status_volatilitas, warna_sesi = get_market_session()
-
-st.markdown(f"""
-<div style="background: rgba(20, 24, 30, 0.6); border-left: 4px solid {warna_sesi}; padding: 15px; border-radius: 8px; margin-bottom: 20px;">
-    <p style="margin: 0; font-size: 0.9rem; color: #9ca3af; font-weight: 700; letter-spacing: 1px;">LIVE MARKET SESSION DETECTOR (WIB)</p>
-    <p style="margin: 5px 0 0 0; font-size: 1.4rem; font-weight: 800; color: {warna_sesi};">{sesi_aktif}</p>
-    <p style="margin: 5px 0 0 0; font-size: 0.95rem; font-weight: 600; color: #f3f4f6;">Status: {status_volatilitas}</p>
-</div>
-""", unsafe_allow_html=True)
-
 if st.session_state.scan_clicked and st.session_state.raw_forex:
     
+    # Generate Macro Scores
     final_macro_db = {}
     cal_mod = st.session_state.get("cal_impact_dict", {})
     for k, v in DB_MACRO_BASE.items():
@@ -294,20 +277,21 @@ if st.session_state.scan_clicked and st.session_state.raw_forex:
         
         sl_dist = 2.0 * atr
         
+        # Auto Lot Size Calculator Logic
         risk_amount = acc_balance * (risk_pct / 100)
         
         if "JPY" in active_data["TICKER"]:
             pips = sl_dist * 100
-            pip_value_std = 7.00
+            pip_value_std = 7.00 # Estimasi USD/JPY pip value per standard lot
         elif "XAU" in active_data["TICKER"]:
-            pips = sl_dist * 10
+            pips = sl_dist * 10 # Poin emas
             pip_value_std = 10.0
         else:
             pips = sl_dist * 10000
-            pip_value_std = 10.0
+            pip_value_std = 10.0 # Standard USD quote pairs
             
         lot_size = risk_amount / (pips * pip_value_std) if pips > 0 else 0
-        lot_size = max(0.01, round(lot_size, 2))
+        lot_size = max(0.01, round(lot_size, 2)) # Min 0.01 lot
         
         if is_buy:
             dir_bias = "MTF BULLISH ALIGNMENT"

@@ -12,9 +12,9 @@ import requests
 warnings.filterwarnings('ignore')
 
 # ==========================================
-# 1. KONFIGURASI UI STYLE (V10.6 GLOW & HOVER)
+# 1. KONFIGURASI UI STYLE 
 # ==========================================
-st.set_page_config(page_title="JIHAN-GHINA FX OP-v10.6", page_icon="🔥", layout="wide")
+st.set_page_config(page_title="JIHAN-GHINA FX OP-v10.7", page_icon="🔥", layout="wide")
 
 st.markdown("""
 <style>
@@ -40,7 +40,6 @@ st.markdown("""
         letter-spacing: 2px;
     }
     
-    /* Efek Mengambang & Menyala untuk Badge Score */
     .macro-badge {
         background: rgba(255, 255, 255, 0.03);
         border: 1px solid rgba(255, 255, 255, 0.1);
@@ -57,7 +56,6 @@ st.markdown("""
         border: 1px solid rgba(0, 255, 136, 0.5);
     }
     
-    /* Efek Mengambang & Menyala untuk Kotak Eksekusi */
     .directive-card {
         background: linear-gradient(145deg, #0d0a0b 0%, #1a1516 100%);
         border: 2px solid #ff3366;
@@ -210,7 +208,7 @@ with st.sidebar:
             st.session_state.play_alarm = True
         st.rerun()
 
-st.markdown("<p class='title-op'>JIHAN-GHINA FX <span style='color: #ffffff; font-size: 2rem;'>v10.6 GLOW EDITION</span></p>", unsafe_allow_html=True)
+st.markdown("<p class='title-op'>JIHAN-GHINA FX <span style='color: #ffffff; font-size: 2rem;'>v10.7 FIXED EDITION</span></p>", unsafe_allow_html=True)
 
 if not st.session_state.op_data:
     st.markdown("""
@@ -229,11 +227,9 @@ else:
     for idx, (curr, score) in enumerate(final_macro_db.items()):
         with mac_cols[idx]:
             c_color = "#00ff88" if score > 15 else ("#ff0055" if score < -15 else "#fbbf24")
-            # Glow color menyesuaikan dengan warna teks
             glow_color = "rgba(0, 255, 136, 0.3)" if score > 15 else ("rgba(255, 0, 85, 0.3)" if score < -15 else "rgba(251, 191, 36, 0.3)")
             border_color = "rgba(0, 255, 136, 0.5)" if score > 15 else ("rgba(255, 0, 85, 0.5)" if score < -15 else "rgba(251, 191, 36, 0.5)")
             
-            # CSS inline khusus untuk override hover glow sesuai warna
             st.markdown(f"""
             <style>
                 .badge-{curr}:hover {{
@@ -274,8 +270,11 @@ else:
         elif total_score <= -30: rek = "🔴 STRONG SELL"
         else: rek = "⚪ NEUTRAL / WAIT"
         
+        fmt_price = ".3f" if "JPY" in pair or "GOLD" in pair else ".5f"
+        
         matrix_rows.append({
             "ASSET": pair,
+            "HARGA": f"{raw['HARGA']:{fmt_price}}",
             "TREND (D|H4|H1)": raw["MTF"],
             "RSI 14": round(raw["RSI"], 1),
             "MACD": raw["MACD_SIGNAL"],
@@ -306,7 +305,8 @@ else:
             elif val < -30: return 'color: #ff0055; font-weight: bold;'
         return ''
 
-    st.dataframe(pd.DataFrame(matrix_rows).style.applymap(style_matrix), use_container_width=True, hide_index=True)
+    # PERBAIKAN UTAMA: applymap -> map
+    st.dataframe(pd.DataFrame(matrix_rows).style.map(style_matrix), use_container_width=True, hide_index=True)
 
     # ==========================================
     # 5. TITANIUM EXECUTION MANAGER
@@ -316,128 +316,129 @@ else:
     
     col1, col2 = st.columns([1, 2])
     with col1:
-        pilihan = st.selectbox("SELECT ASSET FOR EXECUTION:", [x["NAMA"] for x in st.session_state.op_data])
+        # Menambahkan KEY agar dropdown tersambung ke auto-rescan Streamlit
+        pilihan = st.selectbox("SELECT ASSET FOR EXECUTION:", [x["NAMA"] for x in st.session_state.op_data], key="pair_selector")
     
-    active_data = next((item for item in st.session_state.op_data if item["NAMA"] == pilihan), None)
-    active_matrix = next((item for item in matrix_rows if item["ASSET"] == pilihan), None)
-    
-    if active_data and active_matrix:
-        harga = active_data["HARGA"]
-        atr = active_data["ATR"]
-        sig = active_matrix["SIGNAL"]
-        f_score = active_matrix["FUNDAMENTAL ACCEL"]
+    if st.session_state.pair_selector:
+        active_data = next((item for item in st.session_state.op_data if item["NAMA"] == st.session_state.pair_selector), None)
+        active_matrix = next((item for item in matrix_rows if item["ASSET"] == st.session_state.pair_selector), None)
         
-        if "GOLD" in pilihan:
-            ringkasan_fund = f"Fundamental Support: XAU (Safe Haven) vs USD ({final_macro_db['USD']:+d}) = Dorongan Sektoral {f_score:+d}"
-        else:
-            b, q = pilihan.split("/")
-            ringkasan_fund = f"Fundamental Support: {b} ({final_macro_db.get(b,0):+d}) mendominasi {q} ({final_macro_db.get(q,0):+d}) = Kekuatan Tren {f_score:+d}"
-
-        is_buy = "BUY" in sig
-        is_sell = "SELL" in sig
-        
-        sl_dist = 2.0 * atr
-        risk_amount = acc_balance * (risk_pct / 100)
-        
-        if "JPY" in active_data["TICKER"]: pips, pip_val, fmt = sl_dist * 100, 7.00, ".3f"
-        elif "XAU" in active_data["TICKER"]: pips, pip_val, fmt = sl_dist * 10, 10.0, ".3f"
-        else: pips, pip_val, fmt = sl_dist * 10000, 10.0, ".5f"
+        if active_data and active_matrix:
+            harga = active_data["HARGA"]
+            atr = active_data["ATR"]
+            sig = active_matrix["SIGNAL"]
+            f_score = active_matrix["FUNDAMENTAL ACCEL"]
             
-        lot = max(0.01, round((risk_amount / (pips * pip_val)) if pips > 0 else 0, 2))
-        
-        now_jkt = datetime.now(pytz.timezone('Asia/Jakarta'))
-        menit_sisa = 60 - now_jkt.minute
-        
-        if is_buy:
-            sl = harga - sl_dist
-            tp1, tp2 = harga + (sl_dist * 1.5), harga + (sl_dist * 3.0)
-            entry_area = f"{active_data['EMA20']:{fmt}}"
-            color = "#00ff88"
-        elif is_sell:
-            sl = harga + sl_dist
-            tp1, tp2 = harga - (sl_dist * 1.5), harga - (sl_dist * 3.0)
-            entry_area = f"{active_data['EMA20']:{fmt}}"
-            color = "#ff0055"
-        else:
-            sl = tp1 = tp2 = harga
-            entry_area = "N/A"
-            lot, color = 0.00, "#9ca3af"
-            ringkasan_fund = "Fundamental dan Teknikal sedang tidak searah (Sideways)."
+            if "GOLD" in pilihan:
+                ringkasan_fund = f"Fundamental Support: XAU (Safe Haven) vs USD ({final_macro_db['USD']:+d}) = Dorongan Sektoral {f_score:+d}"
+            else:
+                b, q = pilihan.split("/")
+                ringkasan_fund = f"Fundamental Support: {b} ({final_macro_db.get(b,0):+d}) mendominasi {q} ({final_macro_db.get(q,0):+d}) = Kekuatan Tren {f_score:+d}"
 
-        st.markdown(f"""
-        <div class="directive-card">
-            <h3 style="color: {color}; font-family: Oswald; margin-bottom: 5px;">{sig}</h3>
-            <p style="color: #ffffff; font-size: 1.2rem; font-weight: bold; margin-bottom: 5px;">Harga Real-Time: <span style="color: #ff9933;">{format(harga, fmt)}</span></p>
-            <p style="color: #9ca3af; font-size: 0.9rem; margin-bottom: 5px;">📊 <b>{ringkasan_fund}</b></p>
-            <p style="color: #ff3366; font-size: 0.9rem; margin-bottom: 25px;">⏳ <b>EXPIRED DALAM:</b> {menit_sisa} Menit (Berakhir saat penutupan candle jam ini)</p>
+            is_buy = "BUY" in sig
+            is_sell = "SELL" in sig
             
-            <div style="display: grid; grid-template-columns: repeat(4, 1fr); gap: 15px; background: rgba(0,0,0,0.3); padding: 15px; border-radius: 8px;">
-                <div>
-                    <p style="color: #9ca3af; font-size: 0.8rem; margin: 0;">RECOMMENDED LOT (RISK: ${risk_amount:.2f})</p>
-                    <p class="metric-value" style="color: #ffffff;">{lot}</p>
-                </div>
-                <div>
-                    <p style="color: #9ca3af; font-size: 0.8rem; margin: 0;">IDEAL ENTRY (EMA20 PULLBACK)</p>
-                    <p class="metric-value" style="color: #ff9933;">{entry_area}</p>
-                </div>
-                <div>
-                    <p style="color: #9ca3af; font-size: 0.8rem; margin: 0;">STOP LOSS (-1R)</p>
-                    <p class="metric-value" style="color: #ff0055;">{format(sl, fmt)}</p>
-                </div>
-                <div>
-                    <p style="color: #9ca3af; font-size: 0.8rem; margin: 0;">TARGET (1.5R / 3R)</p>
-                    <p class="metric-value" style="color: #00ff88;">{format(tp1, fmt)} <br> {format(tp2, fmt)}</p>
+            sl_dist = 2.0 * atr
+            risk_amount = acc_balance * (risk_pct / 100)
+            
+            if "JPY" in active_data["TICKER"]: pips, pip_val, fmt = sl_dist * 100, 7.00, ".3f"
+            elif "XAU" in active_data["TICKER"]: pips, pip_val, fmt = sl_dist * 10, 10.0, ".3f"
+            else: pips, pip_val, fmt = sl_dist * 10000, 10.0, ".5f"
+                
+            lot = max(0.01, round((risk_amount / (pips * pip_val)) if pips > 0 else 0, 2))
+            
+            now_jkt = datetime.now(pytz.timezone('Asia/Jakarta'))
+            menit_sisa = 60 - now_jkt.minute
+            
+            if is_buy:
+                sl = harga - sl_dist
+                tp1, tp2 = harga + (sl_dist * 1.5), harga + (sl_dist * 3.0)
+                entry_area = f"{active_data['EMA20']:{fmt}}"
+                color = "#00ff88"
+            elif is_sell:
+                sl = harga + sl_dist
+                tp1, tp2 = harga - (sl_dist * 1.5), harga - (sl_dist * 3.0)
+                entry_area = f"{active_data['EMA20']:{fmt}}"
+                color = "#ff0055"
+            else:
+                sl = tp1 = tp2 = harga
+                entry_area = "N/A"
+                lot, color = 0.00, "#9ca3af"
+                ringkasan_fund = "Fundamental dan Teknikal sedang tidak searah (Sideways)."
+
+            st.markdown(f"""
+            <div class="directive-card">
+                <h3 style="color: {color}; font-family: Oswald; margin-bottom: 5px;">{sig}</h3>
+                <p style="color: #ffffff; font-size: 1.2rem; font-weight: bold; margin-bottom: 5px;">Harga Real-Time: <span style="color: #ff9933;">{format(harga, fmt)}</span></p>
+                <p style="color: #9ca3af; font-size: 0.9rem; margin-bottom: 5px;">📊 <b>{ringkasan_fund}</b></p>
+                <p style="color: #ff3366; font-size: 0.9rem; margin-bottom: 25px;">⏳ <b>EXPIRED DALAM:</b> {menit_sisa} Menit (Berakhir saat penutupan candle jam ini)</p>
+                
+                <div style="display: grid; grid-template-columns: repeat(4, 1fr); gap: 15px; background: rgba(0,0,0,0.3); padding: 15px; border-radius: 8px;">
+                    <div>
+                        <p style="color: #9ca3af; font-size: 0.8rem; margin: 0;">RECOMMENDED LOT (RISK: ${risk_amount:.2f})</p>
+                        <p class="metric-value" style="color: #ffffff;">{lot}</p>
+                    </div>
+                    <div>
+                        <p style="color: #9ca3af; font-size: 0.8rem; margin: 0;">IDEAL ENTRY (EMA20 PULLBACK)</p>
+                        <p class="metric-value" style="color: #ff9933;">{entry_area}</p>
+                    </div>
+                    <div>
+                        <p style="color: #9ca3af; font-size: 0.8rem; margin: 0;">STOP LOSS (-1R)</p>
+                        <p class="metric-value" style="color: #ff0055;">{format(sl, fmt)}</p>
+                    </div>
+                    <div>
+                        <p style="color: #9ca3af; font-size: 0.8rem; margin: 0;">TARGET (1.5R / 3R)</p>
+                        <p class="metric-value" style="color: #00ff88;">{format(tp1, fmt)} <br> {format(tp2, fmt)}</p>
+                    </div>
                 </div>
             </div>
-        </div>
-        """, unsafe_allow_html=True)
+            """, unsafe_allow_html=True)
 
-        st.markdown("<br><h4 style='font-family: Oswald;'>📈 DYNAMIC CHART VISUALIZER</h4>", unsafe_allow_html=True)
-        
-        tf_map = {"M15 (Scalping)": "15m", "H1 (Intraday)": "1h", "H4 (Swing)": "4h"}
-        selected_tf_label = st.radio("PILIH TIMEFRAME GRAFIK:", list(tf_map.keys()), horizontal=True)
-        selected_tf = tf_map[selected_tf_label]
-        
-        try:
-            with st.spinner("Memuat grafik..."):
-                tk_chart = yf.Ticker(active_data["TICKER"])
-                df_chart = tk_chart.history(period="2wk" if selected_tf == "15m" else "1mo", interval=selected_tf).ffill()
-                
-                df_chart['EMA20'] = df_chart['Close'].ewm(span=20, adjust=False).mean()
-                df_chart['EMA50'] = df_chart['Close'].ewm(span=50, adjust=False).mean()
-                df_chart = df_chart.tail(100)
-                
-                fig = go.Figure()
-                fig.add_trace(go.Candlestick(x=df_chart.index, open=df_chart['Open'], high=df_chart['High'], low=df_chart['Low'], close=df_chart['Close'], name='Price', increasing_line_color='#00ff88', decreasing_line_color='#ff0055'))
-                fig.add_trace(go.Scatter(x=df_chart.index, y=df_chart['EMA20'], mode='lines', line=dict(color='#ff9933', width=2), name='EMA 20'))
-                fig.add_trace(go.Scatter(x=df_chart.index, y=df_chart['EMA50'], mode='lines', line=dict(color='#3399ff', width=2, dash='dot'), name='EMA 50'))
-                
-                # MODIFIKASI: Memindahkan legend ke atas dan mengatur margin agar terlihat luas
-                fig.update_layout(
-                    paper_bgcolor='rgba(0,0,0,0)', 
-                    plot_bgcolor='rgba(15, 10, 12, 0.8)', 
-                    margin=dict(l=0, r=0, t=40, b=0), # Margin atas ditambah untuk legend
-                    height=480, 
-                    xaxis_rangeslider_visible=False,
-                    legend=dict(
-                        orientation="h",       # Legend horizontal
-                        yanchor="bottom",      
-                        y=1.02,                # Posisi di atas chart (y > 1)
-                        xanchor="right", 
-                        x=1                    # Rata kanan
+            st.markdown("<br><h4 style='font-family: Oswald;'>📈 DYNAMIC CHART VISUALIZER</h4>", unsafe_allow_html=True)
+            
+            tf_map = {"M15 (Scalping)": "15m", "H1 (Intraday)": "1h", "H4 (Swing)": "4h"}
+            selected_tf_label = st.radio("PILIH TIMEFRAME GRAFIK:", list(tf_map.keys()), horizontal=True)
+            selected_tf = tf_map[selected_tf_label]
+            
+            try:
+                with st.spinner("Memuat grafik..."):
+                    tk_chart = yf.Ticker(active_data["TICKER"])
+                    df_chart = tk_chart.history(period="2wk" if selected_tf == "15m" else "1mo", interval=selected_tf).ffill()
+                    
+                    df_chart['EMA20'] = df_chart['Close'].ewm(span=20, adjust=False).mean()
+                    df_chart['EMA50'] = df_chart['Close'].ewm(span=50, adjust=False).mean()
+                    df_chart = df_chart.tail(100)
+                    
+                    fig = go.Figure()
+                    fig.add_trace(go.Candlestick(x=df_chart.index, open=df_chart['Open'], high=df_chart['High'], low=df_chart['Low'], close=df_chart['Close'], name='Price', increasing_line_color='#00ff88', decreasing_line_color='#ff0055'))
+                    fig.add_trace(go.Scatter(x=df_chart.index, y=df_chart['EMA20'], mode='lines', line=dict(color='#ff9933', width=2), name='EMA 20'))
+                    fig.add_trace(go.Scatter(x=df_chart.index, y=df_chart['EMA50'], mode='lines', line=dict(color='#3399ff', width=2, dash='dot'), name='EMA 50'))
+                    
+                    fig.update_layout(
+                        paper_bgcolor='rgba(0,0,0,0)', 
+                        plot_bgcolor='rgba(15, 10, 12, 0.8)', 
+                        margin=dict(l=0, r=0, t=40, b=0),
+                        height=480, 
+                        xaxis_rangeslider_visible=False,
+                        legend=dict(
+                            orientation="h",       
+                            yanchor="bottom",      
+                            y=1.02,                
+                            xanchor="right", 
+                            x=1                    
+                        )
                     )
-                )
-                fig.update_xaxes(showgrid=True, gridwidth=1, gridcolor='rgba(255,255,255,0.05)')
-                fig.update_yaxes(showgrid=True, gridwidth=1, gridcolor='rgba(255,255,255,0.05)')
-                st.plotly_chart(fig, use_container_width=True, config={'displayModeBar': False})
-        except:
-            st.error("Gagal memuat grafik. Data dari Yahoo Finance sedang sibuk.")
+                    fig.update_xaxes(showgrid=True, gridwidth=1, gridcolor='rgba(255,255,255,0.05)')
+                    fig.update_yaxes(showgrid=True, gridwidth=1, gridcolor='rgba(255,255,255,0.05)')
+                    st.plotly_chart(fig, use_container_width=True, config={'displayModeBar': False})
+            except:
+                st.error("Gagal memuat grafik. Data dari Yahoo Finance sedang sibuk.")
 
     # ==========================================
     # 6. J-G FX ACADEMY BOOK
     # ==========================================
     st.markdown("---")
-    with st.expander("📚 BUKU PANDUAN ACADEMY (Cara Kerja Sistem V10.6)", expanded=False):
+    with st.expander("📚 BUKU PANDUAN ACADEMY (Cara Kerja Sistem V10.7)", expanded=False):
         st.markdown("""
         ### 🧠 1. Memahami Global Macro Strength Index (Fundamental Score)
         Sistem ini tidak hanya melihat grafik, tetapi mengukur kekuatan uang antar negara secara *real-time*.

@@ -14,7 +14,7 @@ warnings.filterwarnings('ignore')
 # ==========================================
 # 1. KONFIGURASI UI STYLE & LUXURY CSS
 # ==========================================
-st.set_page_config(page_title="JIHAN-GHINA FX v11.2", page_icon="💎", layout="wide")
+st.set_page_config(page_title="JIHAN-GHINA FX v11.3", page_icon="💎", layout="wide")
 
 st.markdown("""
 <style>
@@ -48,7 +48,7 @@ st.markdown("""
         letter-spacing: 1px;
     }
     
-    /* BADGES MOBILE RESPONSIVE GRID (UPDATE UNTUK RINCIAN DATA) */
+    /* BADGES MOBILE RESPONSIVE GRID */
     .macro-container {
         display: grid;
         grid-template-columns: repeat(4, 1fr); 
@@ -136,7 +136,7 @@ def fetch_live_calendar():
             for ev in resp.json():
                 curr = ev.get("currency", "").upper()
                 imp = str(ev.get("importance", "")).upper()
-                title = str(ev.get("title", "")).lower() # Menangkap judul berita
+                title = str(ev.get("title", "")).lower() 
                 
                 if curr in impact and ("HIGH" in imp or "3" in imp):
                     act, fore = ev.get("actual"), ev.get("forecast")
@@ -145,15 +145,12 @@ def fetch_live_calendar():
                             a = float(str(act).replace("%", "").replace("K", "").replace("M", "").strip())
                             f = float(str(fore).replace("%", "").replace("K", "").replace("M", "").strip())
                             
-                            # LOGIKA INVERSE UNTUK DATA PENGANGGURAN
                             is_inverse = any(kw in title for kw in ["unemployment", "jobless", "claims"])
                             
                             if not is_inverse:
-                                # Normal Logic (Misal GDP, NFP, Retail Sales): Actual > Forecast = Bagus
                                 if a > f: impact[curr] += 20
                                 elif a < f: impact[curr] -= 20
                             else:
-                                # Inverse Logic (Misal Pengangguran): Actual < Forecast = Bagus
                                 if a < f: impact[curr] += 20
                                 elif a > f: impact[curr] -= 20
                         except: pass
@@ -252,7 +249,7 @@ with st.sidebar:
     st.markdown('</div>', unsafe_allow_html=True)
 
 # HEADER DASHBOARD
-st.markdown("<p class='title-op'>JIHAN-GHINA FX <span style='color: #ffffff; font-size: 1.1rem; font-weight: 300;'>v11.2</span></p>", unsafe_allow_html=True)
+st.markdown("<p class='title-op'>JIHAN-GHINA FX <span style='color: #ffffff; font-size: 1.1rem; font-weight: 300;'>v11.3</span></p>", unsafe_allow_html=True)
 
 if not st.session_state.op_data:
     st.markdown("<div style='background: rgba(212, 175, 55, 0.05); border: 1px dashed rgba(212, 175, 55, 0.4); padding: 30px; text-align: center; border-radius: 12px; margin-top: 20px;'><h3 style='color: #d4af37; font-family: Oswald;'>SYSTEM STANDBY</h3><p style='color: #9ca3af; font-size:0.9rem;'>Klik <b>IGNITE SCAN</b> di sidebar.</p></div>", unsafe_allow_html=True)
@@ -261,7 +258,7 @@ else:
     
     cal_mod = st.session_state.get("cal_impact_dict", {})
     
-    # UI BARU: TAMPILAN JABARAN SKOR (BASE + LIVE)
+    # UI BARU DIRAPATKAN MENJADI 1 BARIS HTML UNTUK MENCEGAH BUG MARKDOWN
     macro_html = '<div class="macro-container">'
     final_macro_db = {}
     for curr, base_data in DB_MACRO_BASE.items():
@@ -274,15 +271,8 @@ else:
         impact_str = f"+{live_impact}" if live_impact > 0 else (f"{live_impact}" if live_impact < 0 else "0")
         impact_color = "#00ff88" if live_impact > 0 else ("#ff3366" if live_impact < 0 else "#9ca3af")
         
-        macro_html += f"""
-        <div class="macro-badge">
-            <p style="margin:0; font-size:0.75rem; color:#ffffff; font-weight:bold;">{curr}</p>
-            <div style="font-size: 0.55rem; color: #9ca3af; margin: 2px 0;">
-                BASE: {base_score} <br/> LIVE: <span style="color:{impact_color}; font-weight:bold;">{impact_str}</span>
-            </div>
-            <p style="margin:2px 0 0 0; font-size:1.1rem; font-family:Oswald; color:{c_color}; font-weight:bold;">{total_score:+d}</p>
-        </div>
-        """
+        macro_html += f'<div class="macro-badge"><p style="margin:0; font-size:0.75rem; color:#ffffff; font-weight:bold;">{curr}</p><div style="font-size: 0.55rem; color: #9ca3af; margin: 2px 0;">BASE: {base_score} <br/> LIVE: <span style="color:{impact_color}; font-weight:bold;">{impact_str}</span></div><p style="margin:2px 0 0 0; font-size:1.1rem; font-family:Oswald; color:{c_color}; font-weight:bold;">{total_score:+d}</p></div>'
+        
     macro_html += '</div>'
     st.markdown(macro_html, unsafe_allow_html=True)
 
@@ -361,30 +351,6 @@ else:
                 sl, tp1, tp2, color = entry_area + sl_dist, entry_area - (sl_dist * 1.0), entry_area - (sl_dist * 2.5), "#ff3366"
             else: sl, tp1, tp2, lot, color, entry_area = live_harga, live_harga, live_harga, 0.00, "#9ca3af", live_harga
 
-            html_content = f"""
-<div class="directive-card">
-<h3 style="color: {color}; font-family: Oswald; font-size: 1.8rem; margin: 0 0 5px 0;">{sig}</h3>
-<p style="color: #ffffff; font-size: 1rem; margin: 0 0 5px 0;">Live Price: <span style="color: #d4af37; font-weight: bold;">{format(live_harga, fmt)}</span></p>
-<p style="color: rgba(255,255,255,0.5); font-size: 0.75rem; margin: 0 0 15px 0;">⏳ EXPIRED IN: {menit_sisa} Min</p>
-<div style="display: flex; justify-content: space-between; align-items: center; background: rgba(0,0,0,0.5); padding: 12px 4px; border-radius: 8px; border: 1px solid rgba(255,255,255,0.05);">
-<div style="text-align: center; flex: 1;">
-<p style="color: #9ca3af; font-size: 0.6rem; margin: 0; font-weight: bold;">LOT</p>
-<p style="color: #ffffff; font-size: 1rem; font-family: Oswald; font-weight: 700; margin: 0;">{lot}</p>
-</div>
-<div style="text-align: center; flex: 1; border-left: 1px solid rgba(255,255,255,0.1);">
-<p style="color: #9ca3af; font-size: 0.6rem; margin: 0; font-weight: bold;">ENTRY</p>
-<p style="color: #d4af37; font-size: 1rem; font-family: Oswald; font-weight: 700; margin: 0;">{format(entry_area, fmt)}</p>
-</div>
-<div style="text-align: center; flex: 1; border-left: 1px solid rgba(255,255,255,0.1);">
-<p style="color: #9ca3af; font-size: 0.6rem; margin: 0; font-weight: bold;">SL</p>
-<p style="color: #ff3366; font-size: 1rem; font-family: Oswald; font-weight: 700; margin: 0;">{format(sl, fmt)}</p>
-</div>
-<div style="text-align: center; flex: 1; border-left: 1px solid rgba(255,255,255,0.1);">
-<p style="color: #9ca3af; font-size: 0.6rem; margin: 0; font-weight: bold;">TARGET</p>
-<p style="color: #00ff88; font-size: 1rem; font-family: Oswald; font-weight: 700; margin: 0;">{format(tp1, fmt)}</p>
-<p style="color: #00ff88; font-size: 0.7rem; font-family: Oswald; opacity: 0.6; margin: 0;">{format(tp2, fmt)}</p>
-</div>
-</div>
-</div>
-"""
+            # UI BARU DIRAPATKAN MENJADI 1 BARIS HTML UNTUK MENCEGAH BUG MARKDOWN
+            html_content = f'<div class="directive-card"><h3 style="color: {color}; font-family: Oswald; font-size: 1.8rem; margin: 0 0 5px 0;">{sig}</h3><p style="color: #ffffff; font-size: 1rem; margin: 0 0 5px 0;">Live Price: <span style="color: #d4af37; font-weight: bold;">{format(live_harga, fmt)}</span></p><p style="color: rgba(255,255,255,0.5); font-size: 0.75rem; margin: 0 0 15px 0;">⏳ EXPIRED IN: {menit_sisa} Min</p><div style="display: flex; justify-content: space-between; align-items: center; background: rgba(0,0,0,0.5); padding: 12px 4px; border-radius: 8px; border: 1px solid rgba(255,255,255,0.05);"><div style="text-align: center; flex: 1;"><p style="color: #9ca3af; font-size: 0.6rem; margin: 0; font-weight: bold;">LOT</p><p style="color: #ffffff; font-size: 1rem; font-family: Oswald; font-weight: 700; margin: 0;">{lot}</p></div><div style="text-align: center; flex: 1; border-left: 1px solid rgba(255,255,255,0.1);"><p style="color: #9ca3af; font-size: 0.6rem; margin: 0; font-weight: bold;">ENTRY</p><p style="color: #d4af37; font-size: 1rem; font-family: Oswald; font-weight: 700; margin: 0;">{format(entry_area, fmt)}</p></div><div style="text-align: center; flex: 1; border-left: 1px solid rgba(255,255,255,0.1);"><p style="color: #9ca3af; font-size: 0.6rem; margin: 0; font-weight: bold;">SL</p><p style="color: #ff3366; font-size: 1rem; font-family: Oswald; font-weight: 700; margin: 0;">{format(sl, fmt)}</p></div><div style="text-align: center; flex: 1; border-left: 1px solid rgba(255,255,255,0.1);"><p style="color: #9ca3af; font-size: 0.6rem; margin: 0; font-weight: bold;">TARGET</p><p style="color: #00ff88; font-size: 1rem; font-family: Oswald; font-weight: 700; margin: 0;">{format(tp1, fmt)}</p><p style="color: #00ff88; font-size: 0.7rem; font-family: Oswald; opacity: 0.6; margin: 0;">{format(tp2, fmt)}</p></div></div></div>'
             st.markdown(html_content, unsafe_allow_html=True)

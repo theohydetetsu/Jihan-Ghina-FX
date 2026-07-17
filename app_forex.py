@@ -5,8 +5,6 @@ import numpy as np
 from datetime import datetime
 import pytz
 import warnings
-import plotly.graph_objects as go
-import streamlit.components.v1 as components 
 import requests
 import json
 import os
@@ -16,7 +14,7 @@ warnings.filterwarnings('ignore')
 # ==========================================
 # 1. KONFIGURASI UI STYLE & LUXURY CSS
 # ==========================================
-st.set_page_config(page_title="JIHAN-GHINA FX v11", page_icon="💎", layout="wide")
+st.set_page_config(page_title="JIHAN-GHINA FX v11.2", page_icon="💎", layout="wide")
 
 st.markdown("""
 <style>
@@ -28,48 +26,55 @@ st.markdown("""
         color: #f3f4f6 !important; 
     }
     
-    .block-container { padding-top: 1rem; padding-bottom: 2rem; max-width: 100% !important; }
+    .block-container { padding-top: 0.5rem; padding-bottom: 2rem; max-width: 100% !important; }
     
     /* LUXURY SIDEBAR */
     [data-testid="stSidebar"] {
-        min-width: 270px !important;
-        max-width: 270px !important;
+        min-width: 260px !important;
+        max-width: 260px !important;
         background: linear-gradient(180deg, rgba(15,12,12,0.95) 0%, rgba(5,5,5,0.95) 100%) !important;
-        border-right: 1px solid rgba(212, 175, 55, 0.2) !important; /* Gold Accent Border */
+        border-right: 1px solid rgba(212, 175, 55, 0.2) !important;
     }
     
     .title-op {
         font-family: 'Oswald', sans-serif;
-        background: linear-gradient(to right, #d4af37, #ffdf00, #d4af37); /* Gold Gradient */
+        background: linear-gradient(to right, #d4af37, #ffdf00, #d4af37);
         -webkit-background-clip: text;
         -webkit-text-fill-color: transparent;
         font-weight: 700;
-        font-size: 3.5rem;
+        font-size: 2.2rem;
         text-transform: uppercase;
         margin-bottom: 0;
-        letter-spacing: 2px;
+        letter-spacing: 1px;
     }
     
-    /* BADGES */
+    /* BADGES MOBILE RESPONSIVE GRID (UPDATE UNTUK RINCIAN DATA) */
+    .macro-container {
+        display: grid;
+        grid-template-columns: repeat(4, 1fr); 
+        gap: 6px;
+        margin-bottom: 15px;
+    }
+    
     .macro-badge {
         background: rgba(255, 255, 255, 0.02);
-        border: 1px solid rgba(212, 175, 55, 0.1);
+        border: 1px solid rgba(212, 175, 55, 0.15);
         border-radius: 8px;
-        padding: 12px;
+        padding: 8px 2px;
         text-align: center;
-        transition: all 0.3s ease;
+        display: flex;
+        flex-direction: column;
+        justify-content: center;
     }
     
-    /* LUXURY DIRECTIVE CARD */
     .directive-card {
         background: linear-gradient(145deg, #120e0f 0%, #080606 100%);
         border: 1px solid rgba(212, 175, 55, 0.3);
-        border-radius: 15px;
-        padding: 25px;
-        box-shadow: 0 10px 30px rgba(0,0,0,0.8), inset 0 0 15px rgba(212, 175, 55, 0.03);
+        border-radius: 12px;
+        padding: 20px;
+        box-shadow: 0 10px 30px rgba(0,0,0,0.8);
     }
     
-    /* BUTTONS */
     .btn-scan > button { 
         background: linear-gradient(90deg, #d4af37 0%, #ff9900 100%) !important; 
         border: none !important; 
@@ -78,31 +83,27 @@ st.markdown("""
         font-weight: 800 !important;
         font-family: 'Oswald', sans-serif;
         letter-spacing: 1px;
-        font-size: 1.2rem !important;
-        padding: 12px 0 !important;
+        font-size: 1.1rem !important;
+        padding: 10px 0 !important;
         width: 100% !important;
-        box-shadow: 0 5px 15px rgba(212, 175, 55, 0.3);
     }
     .btn-logout > button {
         background: transparent !important;
-        border: 1px solid rgba(255, 51, 102, 0.5) !important;
+        border: 1px solid rgba(255, 51, 102, 0.4) !important;
         color: #ff3366 !important;
         border-radius: 8px !important;
         width: 100% !important;
-        margin-top: 15px !important;
+        margin-top: 10px !important;
     }
-    
-    /* DATAFRAME STYLING HIDE HEADER INDEX */
-    [data-testid="stDataFrame"] { background: transparent !important; }
 </style>
 """, unsafe_allow_html=True)
 
 if st.session_state.get('logged_out', False):
-    st.markdown("<div style='text-align: center; margin-top: 15vh;'><h1 style='color: #d4af37; font-family: Oswald;'>SYSTEM DISCONNECTED</h1><p style='color: #ff3366;'>Refresh browser untuk login kembali.</p></div>", unsafe_allow_html=True)
+    st.markdown("<div style='text-align: center; margin-top: 15vh;'><h1 style='color: #d4af37; font-family: Oswald;'>SYSTEM DISCONNECTED</h1></div>", unsafe_allow_html=True)
     st.stop()
 
 # ==========================================
-# 2. MEMORY SYSTEM (AUTO-SAVE CAPITAL)
+# 2. MEMORY SYSTEM
 # ==========================================
 CONFIG_FILE = "config_jgfx.json"
 
@@ -119,7 +120,7 @@ def save_capital():
         json.dump({"capital": st.session_state.input_modal}, f)
 
 # ==========================================
-# 3. RAW DATA MACRO DATABASE
+# 3. RAW DATA MACRO & SMART CALENDAR ENGINE
 # ==========================================
 DB_MACRO_BASE = {
     "USD": {"Skor_Base": 35}, "EUR": {"Skor_Base": 10}, "GBP": {"Skor_Base": 20},
@@ -135,20 +136,32 @@ def fetch_live_calendar():
             for ev in resp.json():
                 curr = ev.get("currency", "").upper()
                 imp = str(ev.get("importance", "")).upper()
+                title = str(ev.get("title", "")).lower() # Menangkap judul berita
+                
                 if curr in impact and ("HIGH" in imp or "3" in imp):
                     act, fore = ev.get("actual"), ev.get("forecast")
                     if act and fore:
                         try:
                             a = float(str(act).replace("%", "").replace("K", "").replace("M", "").strip())
                             f = float(str(fore).replace("%", "").replace("K", "").replace("M", "").strip())
-                            if a > f: impact[curr] += 20
-                            elif a < f: impact[curr] -= 20
+                            
+                            # LOGIKA INVERSE UNTUK DATA PENGANGGURAN
+                            is_inverse = any(kw in title for kw in ["unemployment", "jobless", "claims"])
+                            
+                            if not is_inverse:
+                                # Normal Logic (Misal GDP, NFP, Retail Sales): Actual > Forecast = Bagus
+                                if a > f: impact[curr] += 20
+                                elif a < f: impact[curr] -= 20
+                            else:
+                                # Inverse Logic (Misal Pengangguran): Actual < Forecast = Bagus
+                                if a < f: impact[curr] += 20
+                                elif a > f: impact[curr] -= 20
                         except: pass
     except: pass
     return impact
 
 # ==========================================
-# 4. TECHNICAL SCANNER ENGINE (AKURAT)
+# 4. TECHNICAL SCANNER ENGINE 
 # ==========================================
 roster_forex = ["EURUSD=X", "GBPUSD=X", "USDJPY=X", "AUDUSD=X", "USDCAD=X", "USDCHF=X", "XAUUSD=X"]
 nama_pairs = {"EURUSD=X": "EUR/USD", "GBPUSD=X": "GBP/USD", "USDJPY=X": "USD/JPY", "AUDUSD=X": "AUD/USD", "USDCAD=X": "USD/CAD", "USDCHF=X": "USD/CHF", "XAUUSD=X": "GOLD (XAU/USD)"}
@@ -209,77 +222,71 @@ def fetch_op_forex(ticker):
     except: return None
 
 # ==========================================
-# 5. EXECUTOR CONTROL PANEL & SIDEBAR
+# 5. EXECUTOR CONTROL PANEL
 # ==========================================
 if "op_data" not in st.session_state: st.session_state.op_data = []
 
 with st.sidebar:
-    st.markdown("<h3 style='color: #d4af37; font-family: Oswald; font-size: 1.8rem;'>☠️ OP CONTROL</h3>", unsafe_allow_html=True)
+    st.markdown("<h3 style='color: #d4af37; font-family: Oswald; font-size: 1.5rem;'>☠️ OP CONTROL</h3>", unsafe_allow_html=True)
     
     saved_cap = load_capital()
-    acc_balance = st.number_input(
-        "CAPITAL (USD):", 
-        min_value=10.0, 
-        value=float(saved_cap), 
-        step=100.0,
-        key="input_modal",
-        on_change=save_capital
-    )
-    
+    acc_balance = st.number_input("CAPITAL (USD):", min_value=10.0, value=float(saved_cap), step=100.0, key="input_modal", on_change=save_capital)
     risk_pct = st.slider("RISK PER TRADE (%):", min_value=0.5, max_value=5.0, value=1.0, step=0.5)
     st.markdown("---")
     
     st.markdown('<div class="btn-scan">', unsafe_allow_html=True)
     if st.button("🔥 IGNITE SCAN"):
-        with st.spinner("QUANTITATIVE SCANNING..."):
+        with st.spinner("SCANNING..."):
             st.session_state.cal_impact_dict = fetch_live_calendar()
             st.session_state.op_data = [fetch_op_forex(t) for t in roster_forex]
             st.session_state.op_data = [x for x in st.session_state.op_data if x is not None]
             st.session_state.last_run = datetime.now(pytz.timezone('Asia/Jakarta')).strftime("%H:%M:%S WIB")
         st.rerun()
     st.markdown('</div>', unsafe_allow_html=True)
-    st.markdown("---")
     
-    with st.expander("📖 BOOK ACADEMY (FULL)"):
-        st.markdown("""
-        <div style="font-size:0.8rem; color:#d1d5db; line-height:1.6;">
-            <b>1. CUAN CEPAT (SCALPING)</b><br>
-            Mode ini menggunakan ATR 1.2x. Sangat responsif. Entry Hajar Kanan (Market) jika sinyal TITANIUM.<br><br>
-            <b>2. RISK MANAGEMENT</b><br>
-            Lot dihitung otomatis berdasar Risk (%). Jaga emosi, biarkan probabilitas bekerja.<br><br>
-            <b>3. GOLDEN RATIO</b><br>
-            TP1 (1:1) wajib diamankan (Set BEP). Sisakan lot untuk TP2 (1:2.5 Runner).
-        </div>
-        """, unsafe_allow_html=True)
-        
     st.markdown('<div class="btn-logout">', unsafe_allow_html=True)
-    if st.button("⏻ SECURE LOG OUT"):
+    if st.button("⏻ LOG OUT"):
         st.session_state.clear()
         st.session_state['logged_out'] = True
         st.rerun()
     st.markdown('</div>', unsafe_allow_html=True)
 
 # HEADER DASHBOARD
-st.markdown("<p class='title-op'>JIHAN-GHINA FX <span style='color: #ffffff; font-size: 1.5rem; font-weight: 300;'>v11 LUXURY EDITION</span></p>", unsafe_allow_html=True)
+st.markdown("<p class='title-op'>JIHAN-GHINA FX <span style='color: #ffffff; font-size: 1.1rem; font-weight: 300;'>v11.2</span></p>", unsafe_allow_html=True)
 
 if not st.session_state.op_data:
-    st.markdown("<div style='background: rgba(212, 175, 55, 0.05); border: 1px dashed rgba(212, 175, 55, 0.4); padding: 40px; text-align: center; border-radius: 15px; margin-top: 30px;'><h3 style='color: #d4af37; font-family: Oswald;'>SYSTEM STANDBY</h3><p style='color: #9ca3af;'>Klik <b>IGNITE SCAN</b> di sidebar untuk memuat matriks kuantitatif.</p></div>", unsafe_allow_html=True)
+    st.markdown("<div style='background: rgba(212, 175, 55, 0.05); border: 1px dashed rgba(212, 175, 55, 0.4); padding: 30px; text-align: center; border-radius: 12px; margin-top: 20px;'><h3 style='color: #d4af37; font-family: Oswald;'>SYSTEM STANDBY</h3><p style='color: #9ca3af; font-size:0.9rem;'>Klik <b>IGNITE SCAN</b> di sidebar.</p></div>", unsafe_allow_html=True)
 else:
-    st.markdown(f"<p style='color:#9ca3af; font-size: 0.85rem;'>⚡ Data Timestamp: <span style='color:#d4af37; font-weight:bold;'>{st.session_state.get('last_run', '')}</span></p>", unsafe_allow_html=True)
+    st.markdown(f"<p style='color:#9ca3af; font-size: 0.8rem; margin-top:0; margin-bottom:10px;'>⚡ Timestamp: <span style='color:#d4af37; font-weight:bold;'>{st.session_state.get('last_run', '')}</span></p>", unsafe_allow_html=True)
     
     cal_mod = st.session_state.get("cal_impact_dict", {})
-    final_macro_db = {k: v["Skor_Base"] + cal_mod.get(k, 0) for k, v in DB_MACRO_BASE.items()}
     
-    mac_cols = st.columns(8)
-    for idx, (curr, score) in enumerate(final_macro_db.items()):
-        with mac_cols[idx]:
-            c_color = "#00ff88" if score > 15 else ("#ff3366" if score < -15 else "#d4af37")
-            st.markdown(f'<div class="macro-badge"><p style="margin:0; font-size:0.7rem; color:#9ca3af; font-weight:bold;">{curr}</p><p style="margin:3px 0 0 0; font-size:1.3rem; font-family:Oswald; color:{c_color};">{score:+d}</p></div>', unsafe_allow_html=True)
-            
-    st.markdown("<br>", unsafe_allow_html=True)
+    # UI BARU: TAMPILAN JABARAN SKOR (BASE + LIVE)
+    macro_html = '<div class="macro-container">'
+    final_macro_db = {}
+    for curr, base_data in DB_MACRO_BASE.items():
+        base_score = base_data["Skor_Base"]
+        live_impact = cal_mod.get(curr, 0)
+        total_score = base_score + live_impact
+        final_macro_db[curr] = total_score
+        
+        c_color = "#00ff88" if total_score > 15 else ("#ff3366" if total_score < -15 else "#d4af37")
+        impact_str = f"+{live_impact}" if live_impact > 0 else (f"{live_impact}" if live_impact < 0 else "0")
+        impact_color = "#00ff88" if live_impact > 0 else ("#ff3366" if live_impact < 0 else "#9ca3af")
+        
+        macro_html += f"""
+        <div class="macro-badge">
+            <p style="margin:0; font-size:0.75rem; color:#ffffff; font-weight:bold;">{curr}</p>
+            <div style="font-size: 0.55rem; color: #9ca3af; margin: 2px 0;">
+                BASE: {base_score} <br/> LIVE: <span style="color:{impact_color}; font-weight:bold;">{impact_str}</span>
+            </div>
+            <p style="margin:2px 0 0 0; font-size:1.1rem; font-family:Oswald; color:{c_color}; font-weight:bold;">{total_score:+d}</p>
+        </div>
+        """
+    macro_html += '</div>'
+    st.markdown(macro_html, unsafe_allow_html=True)
 
     matrix_rows = []
-    
     for raw in st.session_state.op_data:
         pair = raw["NAMA"]
         if "GOLD" in pair: f_score = 30 if final_macro_db["USD"] < 0 else -30
@@ -301,34 +308,27 @@ else:
             "ASSET": pair,
             "PRICE": f"{raw['HARGA_SCAN']:.4f}" if "JPY" not in pair else f"{raw['HARGA_SCAN']:.2f}",
             "MTF": raw["MTF"],
-            "RSI": round(raw["RSI"], 1),
-            "FUND": f_score,
-            "SCORE": total_score,
+            "RSI": f"{raw['RSI']:.1f}",
+            "FUND": f"{f_score:+d}",
+            "SCORE": f"{total_score:+d}",
             "SIGNAL": rek
         })
 
     def style_matrix(val):
         if isinstance(val, str):
-            if "TITANIUM BUY" in val: return 'color: #00ff88; font-weight: 900;'
-            elif "STRONG BUY" in val: return 'color: #00ff88;'
-            elif "TITANIUM SELL" in val: return 'color: #ff3366; font-weight: 900;'
-            elif "STRONG SELL" in val: return 'color: #ff3366;'
-        elif isinstance(val, (int, float)):
-            if val > 30: return 'color: #00ff88;'
-            elif val < -30: return 'color: #ff3366;'
+            if "BUY" in val: return 'color: #00ff88;'
+            elif "SELL" in val: return 'color: #ff3366;'
         return 'color: #d1d5db;'
 
     st.dataframe(pd.DataFrame(matrix_rows).style.map(style_matrix), use_container_width=True, hide_index=True)
 
     # ==========================================
-    # 6. TITANIUM EXECUTION MANAGER (ERROR FIXED)
+    # 6. TITANIUM EXECUTION MANAGER
     # ==========================================
     st.markdown("---")
-    st.markdown("<h3 style='font-family: Oswald; color: #d4af37;'>🎯 TACTICAL EXECUTION</h3>", unsafe_allow_html=True)
+    st.markdown("<h3 style='font-family: Oswald; color: #d4af37; margin-bottom:5px;'>🎯 TACTICAL EXECUTION</h3>", unsafe_allow_html=True)
     
-    col1, col2 = st.columns([1, 2])
-    with col1:
-        pilihan = st.selectbox("SELECT ASSET:", [x["NAMA"] for x in st.session_state.op_data], key="pair_selector")
+    pilihan = st.selectbox("SELECT ASSET:", [x["NAMA"] for x in st.session_state.op_data], key="pair_selector")
     
     if st.session_state.pair_selector:
         active_data = next((item for item in st.session_state.op_data if item["NAMA"] == st.session_state.pair_selector), None)
@@ -339,75 +339,50 @@ else:
                 live_tk = yf.Ticker(active_data["TICKER"])
                 live_price_df = live_tk.history(period="1d", interval="1m")
                 live_harga = float(live_price_df['Close'].iloc[-1]) if not live_price_df.empty else active_data["HARGA_SCAN"]
-            except:
-                live_harga = active_data["HARGA_SCAN"]
+            except: live_harga = active_data["HARGA_SCAN"]
 
-            atr = active_data["ATR"]
-            sig = active_matrix["SIGNAL"]
-            score = active_matrix["SCORE"]
-            f_score = active_matrix["FUND"]
+            atr, sig = active_data["ATR"], active_matrix["SIGNAL"]
+            sl_dist, risk_amount = 1.2 * atr, acc_balance * (risk_pct / 100)
             
-            # SCALPING LOGIC - CEPET CUAN
-            sl_dist = 1.2 * atr  # Sangat ketat
-            risk_amount = acc_balance * (risk_pct / 100)
-            
-            if "JPY" in active_data["TICKER"]: 
-                pips, pip_val, fmt = sl_dist * 100, 7.00, ".3f"
-            elif "XAU" in active_data["TICKER"]: 
-                pips, pip_val, fmt = sl_dist * 10, 10.0, ".3f"
-            else: 
-                pips, pip_val, fmt = sl_dist * 10000, 10.0, ".5f"
+            if "JPY" in active_data["TICKER"]: pips, pip_val, fmt = sl_dist * 100, 7.00, ".3f"
+            elif "XAU" in active_data["TICKER"]: pips, pip_val, fmt = sl_dist * 10, 10.0, ".3f"
+            else: pips, pip_val, fmt = sl_dist * 10000, 10.0, ".5f"
                 
             lot = max(0.01, round((risk_amount / (pips * pip_val)) if pips > 0 else 0, 2))
-            
             menit_sisa = 60 - datetime.now(pytz.timezone('Asia/Jakarta')).minute
             
-            is_buy = "BUY" in sig
-            is_sell = "SELL" in sig
-            is_titanium = "TITANIUM" in sig
+            is_buy, is_sell, is_titanium = "BUY" in sig, "SELL" in sig, "TITANIUM" in sig
 
-            # DYNAMIC ENTRY: Titanium = Market Exe (Hajar harga sekarang), Strong = Limit (Tunggu di EMA20)
             if is_buy:
                 entry_area = live_harga if is_titanium else active_data['EMA20']
-                sl = entry_area - sl_dist
-                tp1 = entry_area + (sl_dist * 1.0) # 1:1 Cepet Cuan
-                tp2 = entry_area + (sl_dist * 2.5) # Runner
-                color = "#00ff88"
-                entry_str = f"{entry_area:{fmt}}"
+                sl, tp1, tp2, color = entry_area - sl_dist, entry_area + (sl_dist * 1.0), entry_area + (sl_dist * 2.5), "#00ff88"
             elif is_sell:
                 entry_area = live_harga if is_titanium else active_data['EMA20']
-                sl = entry_area + sl_dist
-                tp1 = entry_area - (sl_dist * 1.0) # 1:1 Cepet Cuan
-                tp2 = entry_area - (sl_dist * 2.5) # Runner
-                color = "#ff3366"
-                entry_str = f"{entry_area:{fmt}}"
-            else:
-                sl = tp1 = tp2 = live_harga
-                lot, color, entry_str = 0.00, "#9ca3af", "N/A"
+                sl, tp1, tp2, color = entry_area + sl_dist, entry_area - (sl_dist * 1.0), entry_area - (sl_dist * 2.5), "#ff3366"
+            else: sl, tp1, tp2, lot, color, entry_area = live_harga, live_harga, live_harga, 0.00, "#9ca3af", live_harga
 
-            # PERBAIKAN HTML: Semua indentasi dihilangkan agar HTML Streamlit berjalan mulus.
             html_content = f"""
 <div class="directive-card">
-<h3 style="color: {color}; font-family: Oswald; font-size: 2rem; margin-bottom: 5px;">{sig}</h3>
-<p style="color: #ffffff; font-size: 1.1rem; margin-bottom: 5px;">Live Price: <span style="color: #d4af37; font-weight: bold;">{format(live_harga, fmt)}</span></p>
-<p style="color: rgba(255,255,255,0.5); font-size: 0.8rem; margin-bottom: 20px;">⏳ EXPIRED IN: {menit_sisa} Min</p>
-<div style="display: flex; justify-content: space-between; align-items: center; background: rgba(0,0,0,0.5); padding: 15px 5px; border-radius: 10px; border: 1px solid rgba(255,255,255,0.05); flex-wrap: nowrap; overflow-x: auto;">
-<div style="text-align: center; flex: 1; padding: 0 2px;">
-<p style="color: #9ca3af; font-size: 0.65rem; margin: 0; font-weight: bold; letter-spacing: 0.5px;">LOT</p>
-<p style="color: #ffffff; font-size: 1.1rem; font-family: Oswald; font-weight: 700; margin: 0;">{lot}</p>
+<h3 style="color: {color}; font-family: Oswald; font-size: 1.8rem; margin: 0 0 5px 0;">{sig}</h3>
+<p style="color: #ffffff; font-size: 1rem; margin: 0 0 5px 0;">Live Price: <span style="color: #d4af37; font-weight: bold;">{format(live_harga, fmt)}</span></p>
+<p style="color: rgba(255,255,255,0.5); font-size: 0.75rem; margin: 0 0 15px 0;">⏳ EXPIRED IN: {menit_sisa} Min</p>
+<div style="display: flex; justify-content: space-between; align-items: center; background: rgba(0,0,0,0.5); padding: 12px 4px; border-radius: 8px; border: 1px solid rgba(255,255,255,0.05);">
+<div style="text-align: center; flex: 1;">
+<p style="color: #9ca3af; font-size: 0.6rem; margin: 0; font-weight: bold;">LOT</p>
+<p style="color: #ffffff; font-size: 1rem; font-family: Oswald; font-weight: 700; margin: 0;">{lot}</p>
 </div>
-<div style="text-align: center; flex: 1; padding: 0 2px; border-left: 1px solid rgba(255,255,255,0.1);">
-<p style="color: #9ca3af; font-size: 0.65rem; margin: 0; font-weight: bold; letter-spacing: 0.5px;">ENTRY</p>
-<p style="color: #d4af37; font-size: 1.1rem; font-family: Oswald; font-weight: 700; margin: 0;">{entry_str}</p>
+<div style="text-align: center; flex: 1; border-left: 1px solid rgba(255,255,255,0.1);">
+<p style="color: #9ca3af; font-size: 0.6rem; margin: 0; font-weight: bold;">ENTRY</p>
+<p style="color: #d4af37; font-size: 1rem; font-family: Oswald; font-weight: 700; margin: 0;">{format(entry_area, fmt)}</p>
 </div>
-<div style="text-align: center; flex: 1; padding: 0 2px; border-left: 1px solid rgba(255,255,255,0.1);">
-<p style="color: #9ca3af; font-size: 0.65rem; margin: 0; font-weight: bold; letter-spacing: 0.5px;">SL</p>
-<p style="color: #ff3366; font-size: 1.1rem; font-family: Oswald; font-weight: 700; margin: 0;">{format(sl, fmt)}</p>
+<div style="text-align: center; flex: 1; border-left: 1px solid rgba(255,255,255,0.1);">
+<p style="color: #9ca3af; font-size: 0.6rem; margin: 0; font-weight: bold;">SL</p>
+<p style="color: #ff3366; font-size: 1rem; font-family: Oswald; font-weight: 700; margin: 0;">{format(sl, fmt)}</p>
 </div>
-<div style="text-align: center; flex: 1; padding: 0 2px; border-left: 1px solid rgba(255,255,255,0.1);">
-<p style="color: #9ca3af; font-size: 0.65rem; margin: 0; font-weight: bold; letter-spacing: 0.5px;">TARGET</p>
-<p style="color: #00ff88; font-size: 1.1rem; font-family: Oswald; font-weight: 700; margin: 0;">{format(tp1, fmt)}</p>
-<p style="color: #00ff88; font-size: 0.75rem; font-family: Oswald; opacity: 0.7; margin: 0;">{format(tp2, fmt)}</p>
+<div style="text-align: center; flex: 1; border-left: 1px solid rgba(255,255,255,0.1);">
+<p style="color: #9ca3af; font-size: 0.6rem; margin: 0; font-weight: bold;">TARGET</p>
+<p style="color: #00ff88; font-size: 1rem; font-family: Oswald; font-weight: 700; margin: 0;">{format(tp1, fmt)}</p>
+<p style="color: #00ff88; font-size: 0.7rem; font-family: Oswald; opacity: 0.6; margin: 0;">{format(tp2, fmt)}</p>
 </div>
 </div>
 </div>

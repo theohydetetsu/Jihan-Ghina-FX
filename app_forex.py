@@ -15,7 +15,7 @@ warnings.filterwarnings('ignore')
 # ==========================================
 # 1. KONFIGURASI UI STYLE & NEON CSS
 # ==========================================
-st.set_page_config(page_title="JIHAN-GHINA FX OP-v10.9", page_icon="🔥", layout="wide")
+st.set_page_config(page_title="JIHAN-GHINA FX OP-v10.10", page_icon="🔥", layout="wide")
 
 st.markdown("""
 <style>
@@ -51,7 +51,6 @@ st.markdown("""
         letter-spacing: 2px;
     }
     
-    /* EFEK NEON MENGAMBANG UNTUK MACRO BADGE */
     .macro-badge {
         background: rgba(255, 255, 255, 0.02);
         border: 1px solid rgba(255, 255, 255, 0.08);
@@ -62,12 +61,8 @@ st.markdown("""
         cursor: pointer;
         position: relative;
     }
-    .macro-badge:hover {
-        transform: translateY(-8px) scale(1.05);
-        z-index: 10;
-    }
+    .macro-badge:hover { transform: translateY(-8px) scale(1.05); z-index: 10; }
 
-    /* EFEK NEON MENGAMBANG UNTUK KOTAK EKSEKUSI */
     .directive-card {
         background: linear-gradient(145deg, #0d0a0b 0%, #151011 100%);
         border: 2px solid #333;
@@ -95,11 +90,9 @@ st.markdown("""
         font-size: 1.1rem !important;
         padding: 12px 0 !important;
         transition: all 0.3s ease;
+        width: 100% !important;
     }
-    .btn-scan > button:hover {
-        transform: scale(1.02);
-        box-shadow: 0 10px 30px rgba(255, 0, 85, 0.6);
-    }
+    .btn-scan > button:hover { transform: scale(1.02); box-shadow: 0 10px 30px rgba(255, 0, 85, 0.6); }
 
     .btn-logout > button {
         background: transparent !important;
@@ -110,6 +103,7 @@ st.markdown("""
         font-size: 0.9rem !important;
         width: 100% !important;
         transition: all 0.3s ease;
+        margin-top: 15px !important;
     }
     .btn-logout > button:hover {
         background: rgba(255, 0, 85, 0.1) !important;
@@ -252,8 +246,25 @@ with st.sidebar:
         st.rerun()
     st.markdown('</div>', unsafe_allow_html=True)
     
-    st.markdown("<br><br><br>", unsafe_allow_html=True)
     st.markdown("---")
+    
+    # KEMBALIKAN FITUR BOOK ACADEMY
+    with st.expander("📖 BOOK ACADEMY (EDUKASI)"):
+        st.markdown("""
+        <p style="font-size:0.85rem; color:#9ca3af;">
+        Kumpulan Jurnal & Materi Analisa Teknikal eksklusif:
+        <ul style="font-size:0.85rem; color:#9ca3af;">
+            <li>SOP Manajemen Risiko</li>
+            <li>Setup Titanium & Golden Ratio</li>
+            <li>Psikologi Trading</li>
+        </ul>
+        </p>
+        """, unsafe_allow_html=True)
+        st.button("Buka Modul (Coming Soon)", disabled=True)
+        
+    st.markdown("---")
+    
+    # TOMBOL LOG OUT DIPASTIKAN SELALU MUNCUL
     st.markdown('<div class="btn-logout">', unsafe_allow_html=True)
     if st.button("⏻ LOG OUT"):
         st.session_state.clear()
@@ -261,7 +272,7 @@ with st.sidebar:
         st.rerun()
     st.markdown('</div>', unsafe_allow_html=True)
 
-st.markdown("<p class='title-op'>JIHAN-GHINA FX <span style='color: #ffffff; font-size: 1.5rem; font-weight: 400;'>v10.9 LUXURY MOBILE</span></p>", unsafe_allow_html=True)
+st.markdown("<p class='title-op'>JIHAN-GHINA FX <span style='color: #ffffff; font-size: 1.5rem; font-weight: 400;'>v10.10 ULTIMATE</span></p>", unsafe_allow_html=True)
 
 if not st.session_state.op_data:
     st.markdown("""
@@ -423,35 +434,8 @@ else:
                 lot, color, shadow = 0.00, "#6b7280", "rgba(107, 114, 128, 0.1)"
                 ringkasan_fund = "Sideways / Netral."
 
-            html_content = f"""
-<div class="directive-card" style="box-shadow: 0 0 15px {shadow}; border-color: {color};">
-    <h3 style="color: {color}; font-family: Oswald; margin-bottom: 2px; font-size: 1.8rem;">{sig}</h3>
-    <p style="color: #ffffff; font-size: 1.1rem; font-weight: bold; margin-bottom: 5px;">
-        Live Price: <span style="color: #ff9933; text-shadow: 0 0 8px rgba(255,153,51,0.4);">{format(live_harga, fmt)}</span>
-    </p>
-    <p style="color: #9ca3af; font-size: 0.85rem; margin-bottom: 5px;">📊 <b>{ringkasan_fund}</b></p>
-    <p style="color: rgba(255,51,102,0.8); font-size: 0.8rem; margin-bottom: 20px;">⏳ <b>EXPIRED IN:</b> {menit_sisa} Min</p>
-    
-    <div style="display: grid; grid-template-columns: repeat(4, 1fr); gap: 10px; background: rgba(0,0,0,0.3); padding: 15px; border-radius: 8px; border: 1px solid rgba(255,255,255,0.05);">
-        <div>
-            <p style="color: #6b7280; font-size: 0.7rem; margin: 0; font-weight: bold;">LOT</p>
-            <p class="metric-value" style="color: #ffffff; font-size: 1.3rem;">{lot}</p>
-        </div>
-        <div>
-            <p style="color: #6b7280; font-size: 0.7rem; margin: 0; font-weight: bold;">ENTRY</p>
-            <p class="metric-value" style="color: #ff9933; font-size: 1.3rem;">{entry_area}</p>
-        </div>
-        <div>
-            <p style="color: #6b7280; font-size: 0.7rem; margin: 0; font-weight: bold;">STOP LOSS</p>
-            <p class="metric-value" style="color: #ff0055; font-size: 1.3rem;">{format(sl, fmt)}</p>
-        </div>
-        <div>
-            <p style="color: #6b7280; font-size: 0.7rem; margin: 0; font-weight: bold;">TARGET</p>
-            <p class="metric-value" style="color: #00ff88; font-size: 1.1rem; line-height: 1.2;">{format(tp1, fmt)} <br> {format(tp2, fmt)}</p>
-        </div>
-    </div>
-</div>
-"""
+            # PERBAIKAN HTML ULTIMATE: Dibuat menyambung tanpa enter/indentasi sama sekali agar kebal terhadap Markdown Code Block Streamlit
+            html_content = f'<div class="directive-card" style="box-shadow: 0 0 15px {shadow}; border-color: {color};"><h3 style="color: {color}; font-family: Oswald; margin-bottom: 2px; font-size: 1.8rem;">{sig}</h3><p style="color: #ffffff; font-size: 1.1rem; font-weight: bold; margin-bottom: 5px;">Live Price: <span style="color: #ff9933; text-shadow: 0 0 8px rgba(255,153,51,0.4);">{format(live_harga, fmt)}</span></p><p style="color: #9ca3af; font-size: 0.85rem; margin-bottom: 5px;">📊 <b>{ringkasan_fund}</b></p><p style="color: rgba(255,51,102,0.8); font-size: 0.8rem; margin-bottom: 20px;">⏳ <b>EXPIRED IN:</b> {menit_sisa} Min</p><div style="display: grid; grid-template-columns: repeat(4, 1fr); gap: 10px; background: rgba(0,0,0,0.3); padding: 15px; border-radius: 8px; border: 1px solid rgba(255,255,255,0.05);"><div><p style="color: #6b7280; font-size: 0.7rem; margin: 0; font-weight: bold;">LOT</p><p class="metric-value" style="color: #ffffff; font-size: 1.3rem;">{lot}</p></div><div><p style="color: #6b7280; font-size: 0.7rem; margin: 0; font-weight: bold;">ENTRY</p><p class="metric-value" style="color: #ff9933; font-size: 1.3rem;">{entry_area}</p></div><div><p style="color: #6b7280; font-size: 0.7rem; margin: 0; font-weight: bold;">STOP LOSS</p><p class="metric-value" style="color: #ff0055; font-size: 1.3rem;">{format(sl, fmt)}</p></div><div><p style="color: #6b7280; font-size: 0.7rem; margin: 0; font-weight: bold;">TARGET</p><p class="metric-value" style="color: #00ff88; font-size: 1.1rem; line-height: 1.2;">{format(tp1, fmt)} <br> {format(tp2, fmt)}</p></div></div></div>'
             st.markdown(html_content, unsafe_allow_html=True)
 
             st.markdown("<br><h4 style='font-family: Oswald; font-size: 1.2rem; color: #9ca3af;'>📈 LIVE VISUALIZER</h4>", unsafe_allow_html=True)
@@ -467,7 +451,7 @@ else:
                     
                     df_chart['EMA20'] = df_chart['Close'].ewm(span=20, adjust=False).mean()
                     df_chart['EMA50'] = df_chart['Close'].ewm(span=50, adjust=False).mean()
-                    df_chart = df_chart.tail(80) # Disesuaikan agar lebih rapat
+                    df_chart = df_chart.tail(80) 
                     
                     fig = go.Figure()
                     fig.add_trace(go.Candlestick(x=df_chart.index, open=df_chart['Open'], high=df_chart['High'], low=df_chart['Low'], close=df_chart['Close'], name='Price', increasing_line_color='#00ff88', decreasing_line_color='#ff0055'))
@@ -476,14 +460,14 @@ else:
                     
                     fig.update_layout(
                         paper_bgcolor='rgba(0,0,0,0)', 
-                        plot_bgcolor='rgba(0,0,0,0)', # Latar belakang bersih
+                        plot_bgcolor='rgba(0,0,0,0)', 
                         margin=dict(l=5, r=5, t=30, b=5),
-                        height=350, # LEBIH RAMPING
-                        dragmode=False, # MENGUNCI CHART AGAR TIDAK TERGESER
+                        height=350, 
+                        dragmode=False,
                         xaxis_rangeslider_visible=False,
                         legend=dict(orientation="h", yanchor="bottom", y=1.02, xanchor="right", x=1, font=dict(size=10, color="#6b7280"))
                     )
-                    # MENGUNCI ZOOM AXIS & MEMBUAT GRID LEBIH ELEGAN
+                    
                     fig.update_xaxes(showgrid=True, gridwidth=1, gridcolor='rgba(255,255,255,0.03)', fixedrange=True)
                     fig.update_yaxes(showgrid=True, gridwidth=1, gridcolor='rgba(255,255,255,0.03)', fixedrange=True)
                     

@@ -5,17 +5,18 @@ import numpy as np
 from datetime import datetime
 import pytz
 import warnings
+import plotly.graph_objects as go
+import streamlit.components.v1 as components 
+import requests
 import json
 import os
-import requests
-import plotly.graph_objects as go
 
 warnings.filterwarnings('ignore')
 
 # ==========================================
 # 1. KONFIGURASI UI STYLE & LUXURY CSS
 # ==========================================
-st.set_page_config(page_title="JIHAN-GHINA FX v12", page_icon="💎", layout="wide")
+st.set_page_config(page_title="JIHAN-GHINA FX v11", page_icon="💎", layout="wide")
 
 st.markdown("""
 <style>
@@ -34,12 +35,12 @@ st.markdown("""
         min-width: 270px !important;
         max-width: 270px !important;
         background: linear-gradient(180deg, rgba(15,12,12,0.95) 0%, rgba(5,5,5,0.95) 100%) !important;
-        border-right: 1px solid rgba(212, 175, 55, 0.2) !important;
+        border-right: 1px solid rgba(212, 175, 55, 0.2) !important; /* Gold Accent Border */
     }
     
     .title-op {
         font-family: 'Oswald', sans-serif;
-        background: linear-gradient(to right, #d4af37, #ffdf00, #d4af37); 
+        background: linear-gradient(to right, #d4af37, #ffdf00, #d4af37); /* Gold Gradient */
         -webkit-background-clip: text;
         -webkit-text-fill-color: transparent;
         font-weight: 700;
@@ -91,6 +92,7 @@ st.markdown("""
         margin-top: 15px !important;
     }
     
+    /* DATAFRAME STYLING HIDE HEADER INDEX */
     [data-testid="stDataFrame"] { background: transparent !important; }
 </style>
 """, unsafe_allow_html=True)
@@ -238,7 +240,7 @@ with st.sidebar:
     st.markdown('</div>', unsafe_allow_html=True)
     st.markdown("---")
     
-    with st.expander("📖 BOOK ACADEMY (FULL ACCESS)"):
+    with st.expander("📖 BOOK ACADEMY (FULL)"):
         st.markdown("""
         <div style="font-size:0.8rem; color:#d1d5db; line-height:1.6;">
             <b>1. CUAN CEPAT (SCALPING)</b><br>
@@ -246,9 +248,7 @@ with st.sidebar:
             <b>2. RISK MANAGEMENT</b><br>
             Lot dihitung otomatis berdasar Risk (%). Jaga emosi, biarkan probabilitas bekerja.<br><br>
             <b>3. GOLDEN RATIO</b><br>
-            TP1 (1:1) wajib diamankan (Set BEP). Sisakan lot untuk TP2 (1:2.5 Runner).<br><br>
-            <b>4. TITANIUM SETUP</b><br>
-            Fokus pada konfluensi EMA20/50 dan MACD. Fundamental mendukung = Setup Valid.
+            TP1 (1:1) wajib diamankan (Set BEP). Sisakan lot untuk TP2 (1:2.5 Runner).
         </div>
         """, unsafe_allow_html=True)
         
@@ -259,10 +259,8 @@ with st.sidebar:
         st.rerun()
     st.markdown('</div>', unsafe_allow_html=True)
 
-# ==========================================
-# 6. HEADER & MATRIX DASHBOARD
-# ==========================================
-st.markdown("<p class='title-op'>JIHAN-GHINA FX <span style='color: #ffffff; font-size: 1.5rem; font-weight: 300;'>v12 PRO EDITION</span></p>", unsafe_allow_html=True)
+# HEADER DASHBOARD
+st.markdown("<p class='title-op'>JIHAN-GHINA FX <span style='color: #ffffff; font-size: 1.5rem; font-weight: 300;'>v11 LUXURY EDITION</span></p>", unsafe_allow_html=True)
 
 if not st.session_state.op_data:
     st.markdown("<div style='background: rgba(212, 175, 55, 0.05); border: 1px dashed rgba(212, 175, 55, 0.4); padding: 40px; text-align: center; border-radius: 15px; margin-top: 30px;'><h3 style='color: #d4af37; font-family: Oswald;'>SYSTEM STANDBY</h3><p style='color: #9ca3af;'>Klik <b>IGNITE SCAN</b> di sidebar untuk memuat matriks kuantitatif.</p></div>", unsafe_allow_html=True)
@@ -323,10 +321,10 @@ else:
     st.dataframe(pd.DataFrame(matrix_rows).style.map(style_matrix), use_container_width=True, hide_index=True)
 
     # ==========================================
-    # 7. TACTICAL EXECUTION + GRAPH EXPERT
+    # 6. TITANIUM EXECUTION MANAGER (ERROR FIXED)
     # ==========================================
     st.markdown("---")
-    st.markdown("<h3 style='font-family: Oswald; color: #d4af37;'>🎯 TACTICAL EXECUTION & LIVE CHART</h3>", unsafe_allow_html=True)
+    st.markdown("<h3 style='font-family: Oswald; color: #d4af37;'>🎯 TACTICAL EXECUTION</h3>", unsafe_allow_html=True)
     
     col1, col2 = st.columns([1, 2])
     with col1:
@@ -339,17 +337,18 @@ else:
         if active_data and active_matrix:
             try:
                 live_tk = yf.Ticker(active_data["TICKER"])
-                live_price_df = live_tk.history(period="5d", interval="1h").ffill()
+                live_price_df = live_tk.history(period="1d", interval="1m")
                 live_harga = float(live_price_df['Close'].iloc[-1]) if not live_price_df.empty else active_data["HARGA_SCAN"]
             except:
                 live_harga = active_data["HARGA_SCAN"]
-                live_price_df = pd.DataFrame()
 
             atr = active_data["ATR"]
             sig = active_matrix["SIGNAL"]
+            score = active_matrix["SCORE"]
+            f_score = active_matrix["FUND"]
             
-            # SCALPING LOGIC - CEPET CUAN (1.2x ATR)
-            sl_dist = 1.2 * atr  
+            # SCALPING LOGIC - CEPET CUAN
+            sl_dist = 1.2 * atr  # Sangat ketat
             risk_amount = acc_balance * (risk_pct / 100)
             
             if "JPY" in active_data["TICKER"]: 
@@ -360,31 +359,33 @@ else:
                 pips, pip_val, fmt = sl_dist * 10000, 10.0, ".5f"
                 
             lot = max(0.01, round((risk_amount / (pips * pip_val)) if pips > 0 else 0, 2))
+            
             menit_sisa = 60 - datetime.now(pytz.timezone('Asia/Jakarta')).minute
             
             is_buy = "BUY" in sig
             is_sell = "SELL" in sig
             is_titanium = "TITANIUM" in sig
 
+            # DYNAMIC ENTRY: Titanium = Market Exe (Hajar harga sekarang), Strong = Limit (Tunggu di EMA20)
             if is_buy:
                 entry_area = live_harga if is_titanium else active_data['EMA20']
                 sl = entry_area - sl_dist
-                tp1 = entry_area + (sl_dist * 1.0) 
-                tp2 = entry_area + (sl_dist * 2.5) 
+                tp1 = entry_area + (sl_dist * 1.0) # 1:1 Cepet Cuan
+                tp2 = entry_area + (sl_dist * 2.5) # Runner
                 color = "#00ff88"
                 entry_str = f"{entry_area:{fmt}}"
             elif is_sell:
                 entry_area = live_harga if is_titanium else active_data['EMA20']
                 sl = entry_area + sl_dist
-                tp1 = entry_area - (sl_dist * 1.0) 
-                tp2 = entry_area - (sl_dist * 2.5) 
+                tp1 = entry_area - (sl_dist * 1.0) # 1:1 Cepet Cuan
+                tp2 = entry_area - (sl_dist * 2.5) # Runner
                 color = "#ff3366"
                 entry_str = f"{entry_area:{fmt}}"
             else:
                 sl = tp1 = tp2 = live_harga
                 lot, color, entry_str = 0.00, "#9ca3af", "N/A"
 
-            # 100% AMAN DARI BUG INDENTASI MARKDOWN
+            # PERBAIKAN HTML: Semua indentasi dihilangkan agar HTML Streamlit berjalan mulus.
             html_content = f"""
 <div class="directive-card">
 <h3 style="color: {color}; font-family: Oswald; font-size: 2rem; margin-bottom: 5px;">{sig}</h3>
@@ -412,30 +413,3 @@ else:
 </div>
 """
             st.markdown(html_content, unsafe_allow_html=True)
-            
-            # ==========================================
-            # ADDED NEW: INTEGRASI GRAFIK CANDLESTICK LUXURY
-            # ==========================================
-            if not live_price_df.empty:
-                st.markdown("<br>", unsafe_allow_html=True)
-                fig = go.Figure(data=[go.Candlestick(
-                    x=live_price_df.index,
-                    open=live_price_df['Open'],
-                    high=live_price_df['High'],
-                    low=live_price_df['Low'],
-                    close=live_price_df['Close'],
-                    increasing_line_color='#00ff88', decreasing_line_color='#ff3366',
-                    increasing_fillcolor='rgba(0, 255, 136, 0.2)', decreasing_fillcolor='rgba(255, 51, 102, 0.2)'
-                )])
-                
-                fig.update_layout(
-                    template='plotly_dark',
-                    paper_bgcolor='rgba(0,0,0,0)',
-                    plot_bgcolor='rgba(0,0,0,0)',
-                    margin=dict(l=10, r=10, t=10, b=10),
-                    height=320,
-                    xaxis_rangeslider_visible=False,
-                    xaxis=dict(showgrid=False, color='#9ca3af', tickfont=dict(size=10)),
-                    yaxis=dict(showgrid=True, gridcolor='rgba(212, 175, 55, 0.08)', side='right', color='#9ca3af', tickfont=dict(size=10))
-                )
-                st.plotly_chart(fig, use_container_width=True, config={'displayModeBar': False})

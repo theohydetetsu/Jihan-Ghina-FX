@@ -2,13 +2,13 @@ import streamlit as st
 import pandas as pd
 import yfinance as yf
 import numpy as np
-import plotly.graph_objects as go
 from datetime import datetime
 import pytz
 import warnings
 import requests
 import json
 import os
+import plotly.graph_objects as go
 
 warnings.filterwarnings('ignore')
 
@@ -49,26 +49,6 @@ st.markdown("""
         letter-spacing: 1px;
     }
     
-    /* TABS LUXURY DESIGN */
-    .stTabs [data-baseweb="tab-list"] {
-        gap: 10px;
-        background-color: transparent;
-    }
-    .stTabs [data-baseweb="tab"] {
-        background-color: rgba(255, 255, 255, 0.02) !important;
-        border: 1px solid rgba(212, 175, 55, 0.1) !important;
-        border-radius: 6px !important;
-        padding: 6px 16px !important;
-        color: #9ca3af !important;
-        font-family: 'Oswald', sans-serif;
-        font-size: 1rem !important;
-    }
-    .stTabs [aria-selected="true"] {
-        background: linear-gradient(90deg, rgba(212,175,55,0.15) 0%, rgba(0,0,0,0) 100%) !important;
-        border: 1px solid #d4af37 !important;
-        color: #d4af37 !important;
-    }
-    
     /* BADGES MOBILE RESPONSIVE GRID */
     .macro-container {
         display: grid;
@@ -96,14 +76,6 @@ st.markdown("""
         box-shadow: 0 10px 30px rgba(0,0,0,0.8);
     }
     
-    .academy-card {
-        background: rgba(255, 255, 255, 0.01);
-        border-left: 3px solid #d4af37;
-        padding: 12px;
-        margin-bottom: 10px;
-        border-radius: 0 8px 8px 0;
-    }
-    
     .btn-scan > button { 
         background: linear-gradient(90deg, #d4af37 0%, #ff9900 100%) !important; 
         border: none !important; 
@@ -123,6 +95,15 @@ st.markdown("""
         border-radius: 8px !important;
         width: 100% !important;
         margin-top: 10px !important;
+    }
+    
+    /* STYLING UNTUK ACADEMY EXPANDER */
+    .streamlit-expanderHeader {
+        font-family: 'Oswald', sans-serif;
+        color: #d4af37 !important;
+        font-size: 1.2rem;
+        background-color: rgba(212, 175, 55, 0.1);
+        border-radius: 8px;
     }
 </style>
 """, unsafe_allow_html=True)
@@ -248,7 +229,7 @@ def fetch_op_forex(ticker):
     except: return None
 
 # ==========================================
-# 5. EXECUTOR CONTROL PANEL (SIDEBAR)
+# 5. EXECUTOR CONTROL PANEL
 # ==========================================
 if "op_data" not in st.session_state: st.session_state.op_data = []
 
@@ -277,197 +258,178 @@ with st.sidebar:
         st.rerun()
     st.markdown('</div>', unsafe_allow_html=True)
 
-# HEADER UTAMA
+# HEADER DASHBOARD
 st.markdown("<p class='title-op'>JIHAN-GHINA FX <span style='color: #ffffff; font-size: 1.1rem; font-weight: 300;'>v11.4</span></p>", unsafe_allow_html=True)
 
-# SEPARASI MENU MENGGUNAKAN TABS LUXURY
-tab_terminal, tab_academy = st.tabs(["🔥 TITANIUM TERMINAL", "📖 NOTEBOOK ACADEMY"])
-
-# ==========================================
-# TAB 1: TERMINAL TRADING (CORE UTAMA)
-# ==========================================
-with tab_terminal:
-    if not st.session_state.op_data:
-        st.markdown("<div style='background: rgba(212, 175, 55, 0.05); border: 1px dashed rgba(212, 175, 55, 0.4); padding: 30px; text-align: center; border-radius: 12px; margin-top: 20px;'><h3 style='color: #d4af37; font-family: Oswald;'>SYSTEM STANDBY</h3><p style='color: #9ca3af; font-size:0.9rem;'>Klik <b>IGNITE SCAN</b> di sidebar untuk memuat data.</p></div>", unsafe_allow_html=True)
-    else:
-        st.markdown(f"<p style='color:#9ca3af; font-size: 0.8rem; margin-top:0; margin-bottom:10px;'>⚡ Timestamp: <span style='color:#d4af37; font-weight:bold;'>{st.session_state.get('last_run', '')}</span></p>", unsafe_allow_html=True)
+if not st.session_state.op_data:
+    st.markdown("<div style='background: rgba(212, 175, 55, 0.05); border: 1px dashed rgba(212, 175, 55, 0.4); padding: 30px; text-align: center; border-radius: 12px; margin-top: 20px;'><h3 style='color: #d4af37; font-family: Oswald;'>SYSTEM STANDBY</h3><p style='color: #9ca3af; font-size:0.9rem;'>Klik <b>IGNITE SCAN</b> di sidebar.</p></div>", unsafe_allow_html=True)
+else:
+    st.markdown(f"<p style='color:#9ca3af; font-size: 0.8rem; margin-top:0; margin-bottom:10px;'>⚡ Timestamp: <span style='color:#d4af37; font-weight:bold;'>{st.session_state.get('last_run', '')}</span></p>", unsafe_allow_html=True)
+    
+    cal_mod = st.session_state.get("cal_impact_dict", {})
+    
+    macro_html = '<div class="macro-container">'
+    final_macro_db = {}
+    for curr, base_data in DB_MACRO_BASE.items():
+        base_score = base_data["Skor_Base"]
+        live_impact = cal_mod.get(curr, 0)
+        total_score = base_score + live_impact
+        final_macro_db[curr] = total_score
         
-        cal_mod = st.session_state.get("cal_impact_dict", {})
+        c_color = "#00ff88" if total_score > 15 else ("#ff3366" if total_score < -15 else "#d4af37")
+        impact_str = f"+{live_impact}" if live_impact > 0 else (f"{live_impact}" if live_impact < 0 else "0")
+        impact_color = "#00ff88" if live_impact > 0 else ("#ff3366" if live_impact < 0 else "#9ca3af")
         
-        # UI MACRO BADGES (1 BARIS HTML)
-        macro_html = '<div class="macro-container">'
-        final_macro_db = {}
-        for curr, base_data in DB_MACRO_BASE.items():
-            base_score = base_data["Skor_Base"]
-            live_impact = cal_mod.get(curr, 0)
-            total_score = base_score + live_impact
-            final_macro_db[curr] = total_score
-            
-            c_color = "#00ff88" if total_score > 15 else ("#ff3366" if total_score < -15 else "#d4af37")
-            impact_str = f"+{live_impact}" if live_impact > 0 else (f"{live_impact}" if live_impact < 0 else "0")
-            impact_color = "#00ff88" if live_impact > 0 else ("#ff3366" if live_impact < 0 else "#9ca3af")
-            
-            macro_html += f'<div class="macro-badge"><p style="margin:0; font-size:0.75rem; color:#ffffff; font-weight:bold;">{curr}</p><div style="font-size: 0.55rem; color: #9ca3af; margin: 2px 0;">BASE: {base_score} <br/> LIVE: <span style="color:{impact_color}; font-weight:bold;">{impact_str}</span></div><p style="margin:2px 0 0 0; font-size:1.1rem; font-family:Oswald; color:{c_color}; font-weight:bold;">{total_score:+d}</p></div>'
-            
-        macro_html += '</div>'
-        st.markdown(macro_html, unsafe_allow_html=True)
-
-        # MATRIX DATA GENERATOR
-        matrix_rows = []
-        for raw in st.session_state.op_data:
-            pair = raw["NAMA"]
-            if "GOLD" in pair: f_score = 30 if final_macro_db["USD"] < 0 else -30
-            else:
-                try:
-                    b, q = pair.split("/")
-                    f_score = final_macro_db[b] - final_macro_db[q]
-                except: f_score = 0
-                
-            total_score = raw["TECH_SCORE"] + f_score
-            
-            if total_score >= 60: rek = "🔥 TITANIUM BUY"
-            elif total_score >= 30: rek = "🟢 STRONG BUY"
-            elif total_score <= -60: rek = "🩸 TITANIUM SELL"
-            elif total_score <= -30: rek = "🔴 STRONG SELL"
-            else: rek = "⚪ NEUTRAL"
-            
-            matrix_rows.append({
-                "ASSET": pair,
-                "PRICE": f"{raw['HARGA_SCAN']:.4f}" if "JPY" not in pair else f"{raw['HARGA_SCAN']:.2f}",
-                "MTF": raw["MTF"],
-                "RSI": f"{raw['RSI']:.1f}",
-                "FUND": f"{f_score:+d}",
-                "SCORE": f"{total_score:+d}",
-                "SIGNAL": rek
-            })
-
-        def style_matrix(val):
-            if isinstance(val, str):
-                if "BUY" in val: return 'color: #00ff88;'
-                elif "SELL" in val: return 'color: #ff3366;'
-            return 'color: #d1d5db;'
-
-        st.dataframe(pd.DataFrame(matrix_rows).style.map(style_matrix), use_container_width=True, hide_index=True)
-
-        # ==========================================
-        # 6. TITANIUM EXECUTION MANAGER & LIVE CHART
-        # ==========================================
-        st.markdown("---")
-        st.markdown("<h3 style='font-family: Oswald; color: #d4af37; margin-bottom:5px;'>🎯 TACTICAL EXECUTION</h3>", unsafe_allow_html=True)
+        macro_html += f'<div class="macro-badge"><p style="margin:0; font-size:0.75rem; color:#ffffff; font-weight:bold;">{curr}</p><div style="font-size: 0.55rem; color: #9ca3af; margin: 2px 0;">BASE: {base_score} <br/> LIVE: <span style="color:{impact_color}; font-weight:bold;">{impact_str}</span></div><p style="margin:2px 0 0 0; font-size:1.1rem; font-family:Oswald; color:{c_color}; font-weight:bold;">{total_score:+d}</p></div>'
         
+    macro_html += '</div>'
+    st.markdown(macro_html, unsafe_allow_html=True)
+
+    matrix_rows = []
+    for raw in st.session_state.op_data:
+        pair = raw["NAMA"]
+        if "GOLD" in pair: f_score = 30 if final_macro_db["USD"] < 0 else -30
+        else:
+            try:
+                b, q = pair.split("/")
+                f_score = final_macro_db[b] - final_macro_db[q]
+            except: f_score = 0
+            
+        total_score = raw["TECH_SCORE"] + f_score
+        
+        if total_score >= 60: rek = "🔥 TITANIUM BUY"
+        elif total_score >= 30: rek = "🟢 STRONG BUY"
+        elif total_score <= -60: rek = "🩸 TITANIUM SELL"
+        elif total_score <= -30: rek = "🔴 STRONG SELL"
+        else: rek = "⚪ NEUTRAL"
+        
+        matrix_rows.append({
+            "ASSET": pair,
+            "PRICE": f"{raw['HARGA_SCAN']:.4f}" if "JPY" not in pair else f"{raw['HARGA_SCAN']:.2f}",
+            "MTF": raw["MTF"],
+            "RSI": f"{raw['RSI']:.1f}",
+            "FUND": f"{f_score:+d}",
+            "SCORE": f"{total_score:+d}",
+            "SIGNAL": rek
+        })
+
+    def style_matrix(val):
+        if isinstance(val, str):
+            if "BUY" in val: return 'color: #00ff88;'
+            elif "SELL" in val: return 'color: #ff3366;'
+        return 'color: #d1d5db;'
+
+    st.dataframe(pd.DataFrame(matrix_rows).style.map(style_matrix), use_container_width=True, hide_index=True)
+
+    # ==========================================
+    # 5.5. NOTEBOOK ACADEMY (PANDUAN & RULE)
+    # ==========================================
+    with st.expander("📖 JGFX NOTEBOOK ACADEMY (PANDUAN & RULES)", expanded=False):
+        st.markdown("""
+        <div style="color: #d1d5db; font-size: 0.9rem;">
+        <h4 style="color: #d4af37; font-family: Oswald; margin-bottom: 5px;">1. STRUKTUR SCORING (PENILAIAN)</h4>
+        <ul>
+            <li><b>Base Score (Skor Dasar)</b>: Penilaian arah ekonomi jangka menengah-panjang suatu negara (Suku bunga, tren inflasi).</li>
+            <li><b>Live Score (Berita Hari Ini)</b>: Efek kejut dari kalender ekonomi. Jika data <i>Actual > Forecast</i> (Kecuali Pengangguran/Jobless), skor ditambah +20.</li>
+            <li><b>Fund Score (Fundamental Pasangan)</b>: Selisih antara skor total mata uang Basis dikurangi mata uang Quote (Misal: EUR - USD). Emas (XAU) bergerak berlawanan dengan USD.</li>
+            <li><b>Tech Score (Teknikal)</b>: Gabungan dari konfirmasi tren 3 layar (Daily, H4, H1), Golden/Death Cross EMA20-50, dorongan MACD, dan <i>filtering</i> area jenuh RSI.</li>
+            <li><b>Total Score (Score Akhir)</b>: Gabungan dari (Tech Score) + (Fund Score).</li>
+        </ul>
+        
+        <h4 style="color: #d4af37; font-family: Oswald; margin-bottom: 5px; margin-top: 15px;">2. TINGKATAN SINYAL (SIGNAL TIER)</h4>
+        <ul>
+            <li>🔥/🩸 <b>TITANIUM BUY/SELL (Skor >= 60 atau <= -60)</b>: Teknikal selaras 100% dengan Fundamental. Ini adalah <i>Set-up Grade A</i>. Boleh dieksekusi Instan (Harga Live).</li>
+            <li>🟢/🔴 <b>STRONG BUY/SELL (Skor >= 30 atau <= -30)</b>: Teknikal dominan tapi fundamental belum sepenuhnya menunjang (atau sebaliknya). <b>Wajib Pending Order di area EMA20</b>.</li>
+            <li>⚪ <b>NEUTRAL (Skor -29 hingga 29)</b>: Pasar sedang <i>sideways</i>, berisiko tinggi. Lebih baik <i>Wait and See</i>.</li>
+        </ul>
+
+        <h4 style="color: #d4af37; font-family: Oswald; margin-bottom: 5px; margin-top: 15px;">3. RULES EXECUTION & RISK</h4>
+        <ul>
+            <li><b>Volume Lot</b>: Sudah dihitung otomatis berdasarkan Jarak SL (Pips) × Modal (Capital) × Persentase Risiko (Risk Per Trade). <b>Jangan Overlot!</b></li>
+            <li><b>Stop Loss (SL)</b>: Dipatok 1.2 kali dari nilai volatilitas rata-rata harian (ATR). Tidak boleh dilepas agar modal tidak <i>Margin Call</i>.</li>
+            <li><b>Expired Timer</b>: Sinyal ini berbasis data H1. Validitas sinyal dihitung berdasarkan menit tersisa hingga pergantian jam (*Close Candle*). Jika lewat, klik IGNITE SCAN lagi.</li>
+        </ul>
+        </div>
+        """, unsafe_allow_html=True)
+
+
+    # ==========================================
+    # 6. TITANIUM EXECUTION MANAGER & LIVE CHART
+    # ==========================================
+    st.markdown("---")
+    st.markdown("<h3 style='font-family: Oswald; color: #d4af37; margin-bottom:5px;'>🎯 TACTICAL EXECUTION</h3>", unsafe_allow_html=True)
+    
+    col_sel1, col_sel2 = st.columns(2)
+    with col_sel1:
         pilihan = st.selectbox("SELECT ASSET:", [x["NAMA"] for x in st.session_state.op_data], key="pair_selector")
+    with col_sel2:
+        # Tambahan Time Frame sesuai request
+        tf_pilihan = st.selectbox("TIME FRAME:", ["15m", "1h", "1d"], index=1, key="tf_selector")
+    
+    if st.session_state.pair_selector:
+        active_data = next((item for item in st.session_state.op_data if item["NAMA"] == st.session_state.pair_selector), None)
+        active_matrix = next((item for item in matrix_rows if item["ASSET"] == st.session_state.pair_selector), None)
         
-        if st.session_state.pair_selector:
-            active_data = next((item for item in st.session_state.op_data if item["NAMA"] == st.session_state.pair_selector), None)
-            active_matrix = next((item for item in matrix_rows if item["ASSET"] == st.session_state.pair_selector), None)
+        if active_data and active_matrix:
             
-            if active_data and active_matrix:
-                sig = active_matrix["SIGNAL"]
-                is_buy, is_sell, is_titanium = "BUY" in sig, "SELL" in sig, "TITANIUM" in sig
-                color_chart = "#00ff88" if is_buy else ("#ff3366" if is_sell else "#d4af37")
-                
-                # SELEKSI TIMEFRAME UNTUK LIVE CHART RAMPING
-                tf_pilih = st.radio("TIMEFRAME CHART:", ["1 Hour", "4 Hours", "1 Day"], index=0, horizontal=True)
-                tf_map = {"1 Hour": {"p": "5d", "i": "1h"}, "4 Hours": {"p": "20d", "i": "4h"}, "1 Day": {"p": "60d", "i": "1d"}}
-                
-                # ENGINE FETCH LIVE CHART & AUTO-LOCK AXIS
+            # --- START FITUR LIVE CHART ---
+            with st.spinner(f"Loading Chart {active_data['NAMA']}..."):
                 try:
-                    chart_tk = yf.Ticker(active_data["TICKER"])
-                    df_chart = chart_tk.history(period=tf_map[tf_pilih]["p"], interval=tf_map[tf_pilih]["i"]).ffill()
+                    tk_chart = yf.Ticker(active_data["TICKER"])
+                    if tf_pilihan == "15m": df_chart = tk_chart.history(period="5d", interval="15m")
+                    elif tf_pilihan == "1h": df_chart = tk_chart.history(period="1mo", interval="1h")
+                    else: df_chart = tk_chart.history(period="3mo", interval="1d")
                     
                     if not df_chart.empty:
-                        # Auto lock logic: Hitung batas ketat min & max harga saat ini
-                        price_min = float(df_chart['Close'].min())
-                        price_max = float(df_chart['Close'].max())
-                        padding_axis = (price_max - price_min) * 0.05 if price_max != price_min else price_min * 0.005
+                        fig = go.Figure(data=[go.Candlestick(
+                            x=df_chart.index,
+                            open=df_chart['Open'],
+                            high=df_chart['High'],
+                            low=df_chart['Low'],
+                            close=df_chart['Close'],
+                            increasing_line_color='#00ff88', decreasing_line_color='#ff3366'
+                        )])
                         
-                        # Bangun Plotly Ramping khusus layar HP
-                        fig = go.Figure()
-                        fig.add_trace(go.Scatter(
-                            x=df_chart.index, y=df_chart['Close'],
-                            mode='lines', line=dict(color=color_chart, width=2),
-                            hovertemplate='%{y:.5f}<extra></extra>'
-                        ))
+                        # Seting proporsi chart: panjang ke bawah ramping, auto lock axis
                         fig.update_layout(
-                            height=240, # Tinggi diperpendek biar ramping vertikal
-                            margin=dict(l=8, r=8, t=5, b=5),
+                            template='plotly_dark',
+                            height=550, 
+                            margin=dict(l=5, r=5, t=10, b=5),
+                            xaxis_rangeslider_visible=False,
+                            yaxis=dict(autorange=True, fixedrange=False, gridcolor='rgba(255,255,255,0.05)'),
+                            xaxis=dict(gridcolor='rgba(255,255,255,0.05)'),
                             paper_bgcolor='rgba(0,0,0,0)',
-                            plot_bgcolor='rgba(0,0,0,0)',
-                            xaxis=dict(showgrid=False, color='#6b7280', tickfont=dict(size=8), showticklabels=True),
-                            yaxis=dict(
-                                showgrid=True, gridcolor='rgba(255,255,255,0.03)', 
-                                color='#6b7280', tickfont=dict(size=8), side='right',
-                                range=[price_min - padding_axis, price_max + padding_axis] # AUTO LOCK AXIS
-                            ),
-                            hovermode='x unified'
+                            plot_bgcolor='rgba(0,0,0,0)'
                         )
-                        st.plotly_chart(fig, use_container_width=True, config={'displayModeBar': False})
-                except:
-                    st.caption("⚠️ Grafik gagal dimuat otomatis, periksa jaringan.")
+                        st.plotly_chart(fig, use_container_width=True)
+                except Exception as e:
+                    st.warning("Chart tidak dapat dimuat saat ini.")
+            # --- END FITUR LIVE CHART ---
+            
+            try:
+                live_harga = float(df_chart['Close'].iloc[-1]) if not df_chart.empty else active_data["HARGA_SCAN"]
+            except: live_harga = active_data["HARGA_SCAN"]
 
-                # FETCH LIVE TICK PRICE & CALCULATION RESULT
-                try:
-                    live_tk = yf.Ticker(active_data["TICKER"])
-                    live_price_df = live_tk.history(period="1d", interval="1m")
-                    live_harga = float(live_price_df['Close'].iloc[-1]) if not live_price_df.empty else active_data["HARGA_SCAN"]
-                except: live_harga = active_data["HARGA_SCAN"]
-
-                atr = active_data["ATR"]
-                sl_dist, risk_amount = 1.2 * atr, acc_balance * (risk_pct / 100)
+            atr, sig = active_data["ATR"], active_matrix["SIGNAL"]
+            sl_dist, risk_amount = 1.2 * atr, acc_balance * (risk_pct / 100)
+            
+            if "JPY" in active_data["TICKER"]: pips, pip_val, fmt = sl_dist * 100, 7.00, ".3f"
+            elif "XAU" in active_data["TICKER"]: pips, pip_val, fmt = sl_dist * 10, 10.0, ".3f"
+            else: pips, pip_val, fmt = sl_dist * 10000, 10.0, ".5f"
                 
-                if "JPY" in active_data["TICKER"]: pips, pip_val, fmt = sl_dist * 100, 7.00, ".3f"
-                elif "XAU" in active_data["TICKER"]: pips, pip_val, fmt = sl_dist * 10, 10.0, ".3f"
-                else: pips, pip_val, fmt = sl_dist * 10000, 10.0, ".5f"
-                    
-                lot = max(0.01, round((risk_amount / (pips * pip_val)) if pips > 0 else 0, 2))
-                menit_sisa = 60 - datetime.now(pytz.timezone('Asia/Jakarta')).minute
+            lot = max(0.01, round((risk_amount / (pips * pip_val)) if pips > 0 else 0, 2))
+            menit_sisa = 60 - datetime.now(pytz.timezone('Asia/Jakarta')).minute
+            
+            is_buy, is_sell, is_titanium = "BUY" in sig, "SELL" in sig, "TITANIUM" in sig
 
-                if is_buy:
-                    entry_area = live_harga if is_titanium else active_data['EMA20']
-                    sl, tp1, tp2, color = entry_area - sl_dist, entry_area + (sl_dist * 1.0), entry_area + (sl_dist * 2.5), "#00ff88"
-                elif is_sell:
-                    entry_area = live_harga if is_titanium else active_data['EMA20']
-                    sl, tp1, tp2, color = entry_area + sl_dist, entry_area - (sl_dist * 1.0), entry_area - (sl_dist * 2.5), "#ff3366"
-                else: sl, tp1, tp2, lot, color, entry_area = live_harga, live_harga, live_harga, 0.00, "#9ca3af", live_harga
+            if is_buy:
+                entry_area = live_harga if is_titanium else active_data['EMA20']
+                sl, tp1, tp2, color = entry_area - sl_dist, entry_area + (sl_dist * 1.0), entry_area + (sl_dist * 2.5), "#00ff88"
+            elif is_sell:
+                entry_area = live_harga if is_titanium else active_data['EMA20']
+                sl, tp1, tp2, color = entry_area + sl_dist, entry_area - (sl_dist * 1.0), entry_area - (sl_dist * 2.5), "#ff3366"
+            else: sl, tp1, tp2, lot, color, entry_area = live_harga, live_harga, live_harga, 0.00, "#9ca3af", live_harga
 
-                # CARD DIRECTIVE UTAMA (1 BARIS HTML)
-                html_content = f'<div class="directive-card"><h3 style="color: {color}; font-family: Oswald; font-size: 1.8rem; margin: 0 0 5px 0;">{sig}</h3><p style="color: #ffffff; font-size: 1rem; margin: 0 0 5px 0;">Live Price: <span style="color: #d4af37; font-weight: bold;">{format(live_harga, fmt)}</span></p><p style="color: rgba(255,255,255,0.5); font-size: 0.75rem; margin: 0 0 15px 0;">⏳ EXPIRED IN: {menit_sisa} Min</p><div style="display: flex; justify-content: space-between; align-items: center; background: rgba(0,0,0,0.5); padding: 12px 4px; border-radius: 8px; border: 1px solid rgba(255,255,255,0.05);"><div style="text-align: center; flex: 1;"><p style="color: #9ca3af; font-size: 0.6rem; margin: 0; font-weight: bold;">LOT</p><p style="color: #ffffff; font-size: 1rem; font-family: Oswald; font-weight: 700; margin: 0;">{lot}</p></div><div style="text-align: center; flex: 1; border-left: 1px solid rgba(255,255,255,0.1);"><p style="color: #9ca3af; font-size: 0.6rem; margin: 0; font-weight: bold;">ENTRY</p><p style="color: #d4af37; font-size: 1rem; font-family: Oswald; font-weight: 700; margin: 0;">{format(entry_area, fmt)}</p></div><div style="text-align: center; flex: 1; border-left: 1px solid rgba(255,255,255,0.1);"><p style="color: #9ca3af; font-size: 0.6rem; margin: 0; font-weight: bold;">SL</p><p style="color: #ff3366; font-size: 1rem; font-family: Oswald; font-weight: 700; margin: 0;">{format(sl, fmt)}</p></div><div style="text-align: center; flex: 1; border-left: 1px solid rgba(255,255,255,0.1);"><p style="color: #9ca3af; font-size: 0.6rem; margin: 0; font-weight: bold;">TARGET</p><p style="color: #00ff88; font-size: 1rem; font-family: Oswald; font-weight: 700; margin: 0;">{format(tp1, fmt)}</p><p style="color: #00ff88; font-size: 0.7rem; font-family: Oswald; opacity: 0.6; margin: 0;">{format(tp2, fmt)}</p></div></div></div>'
-                st.markdown(html_content, unsafe_allow_html=True)
-
-# ==========================================
-# TAB 2: NOTEBOOK ACADEMY (PANDUAN APLIKASI)
-# ==========================================
-with tab_academy:
-    st.markdown("<h3 style='font-family: Oswald; color: #d4af37; margin-bottom:15px;'>📖 JFX TRADING ACADEMY BOOK</h3>", unsafe_allow_html=True)
-    
-    with st.expander("📊 1. STRUKTUR PEMBOBOTAN SKOR (TOTAL SCORE)"):
-        st.markdown("""
-        Total nilai indikator dihitung berdasarkan kombinasi rumus matematika:
-        **[ Total Score = Technical Score + Fundamental Impact Score ]**
-        
-        *   **Technical Score (Max ±70 Point):** Diambil dari deteksi keselarasan tren *Multi-Timeframe* (D1, H4, H1), persilangan EMA 20/50, kondisi kekuatan RSI, dan momentum tren MACD.
-        *   **Fundamental Score (Base + Live):** Berasal dari kekuatan suku bunga dasar (*Base Score*) digabungkan dengan kejutan kalender ekonomi mingguan berimpact tinggi (*Live Impact*).
-        """)
-        
-    with st.expander("⚠️ 2. ATURAN HUKUM LOGIKA BERBALIK (INVERSE ECONOMY DATA)"):
-        st.markdown("""
-        Aplikasi ini telah ditanamkan kecerdasan buatan untuk mendeteksi berita yang bersifat **negatif berbalik untuk mata uang** (seperti tingkat pengangguran).
-        
-        *   **Berita Normal (GDP, NFP, Retail Sales):**
-            *   *Actual > Forecast* = Ekonomi Bagus = Skor Mata Uang **Naik (+20)**
-            *   *Actual < Forecast* = Ekonomi Buruk = Skor Mata Uang **Turun (-20)**
-        *   **Berita Berbalik/Inverse (Unemployment Rate, Jobless Claims):**
-            *   *Actual < Forecast* = Jumlah Orang Menganggur Sedikit = Ekonomi Menguat = Skor Mata Uang **Naik (+20)**
-            *   *Actual > Forecast* = Jumlah Orang Menganggur Banyak = Ekonomi Melemah = Skor Mata Uang **Turun (-20)**
-        """)
-        
-    with st.expander("🔥 3. RULE MATRIKS KEPUTUSAN SIGNAL SAKTI"):
-        st.markdown('<div class="academy-card"><b>🔥 TITANIUM BUY / SELL (Score ≥ +60 atau ≤ -60)</b><br/>Kondisi Super-Trending. Kekuatan fundamental dan teknikal searah secara ekstrem. Eksekusi instan langsung menggunakan harga running saat ini (Live Price).</div>', unsafe_allow_html=True)
-        st.markdown('<div class="academy-card"><b>🟢 / 🔴 STRONG BUY / SELL (Score +30 s/d +55 atau -30 s/d -55)</b><br/>Kondisi market sehat untuk entry. Disarankan melakukan pemesanan tertib antri memanfaatkan area dinamis EMA20 sebagai titik pijakan harga terbaik.</div>', unsafe_allow_html=True)
-        st.markdown('<div class="academy-card"><b>⚪ NEUTRAL (Score di antara -25 s/d +25)</b><br/>Market tidak memiliki arah yang jelas atau sedang terjadi benturan keras antara fundamental dan teknikal. <b>Dilarang masuk posisi (Wait & See).</b></div>', unsafe_allow_html=True)
-
-    with st.expander("🛡️ 4. MANAJEMEN RISIKO TITANIUM EXECUTION"):
-        st.markdown("""
-        *   **Pengamanan Modal:** Jarak Stop Loss (SL) dikunci mutlak menggunakan formula **1.2 × ATR (Average True Range)** jam terakhir untuk menghindari kegetiran *false breakout*.
-        *   **Money Management Otomatis:** Perhitungan lot disesuaikan secara presisi hingga digit terkecil sesuai persentase batas toleransi resiko modal (*Risk per Trade %*) yang Anda geser pada bilah kontrol sidebar.
-        """)
+            # UI BARU DIRAPATKAN MENJADI 1 BARIS HTML UNTUK MENCEGAH BUG MARKDOWN
+            html_content = f'<div class="directive-card"><h3 style="color: {color}; font-family: Oswald; font-size: 1.8rem; margin: 0 0 5px 0;">{sig}</h3><p style="color: #ffffff; font-size: 1rem; margin: 0 0 5px 0;">Live Price: <span style="color: #d4af37; font-weight: bold;">{format(live_harga, fmt)}</span></p><p style="color: rgba(255,255,255,0.5); font-size: 0.75rem; margin: 0 0 15px 0;">⏳ EXPIRED IN: {menit_sisa} Min</p><div style="display: flex; justify-content: space-between; align-items: center; background: rgba(0,0,0,0.5); padding: 12px 4px; border-radius: 8px; border: 1px solid rgba(255,255,255,0.05);"><div style="text-align: center; flex: 1;"><p style="color: #9ca3af; font-size: 0.6rem; margin: 0; font-weight: bold;">LOT</p><p style="color: #ffffff; font-size: 1rem; font-family: Oswald; font-weight: 700; margin: 0;">{lot}</p></div><div style="text-align: center; flex: 1; border-left: 1px solid rgba(255,255,255,0.1);"><p style="color: #9ca3af; font-size: 0.6rem; margin: 0; font-weight: bold;">ENTRY</p><p style="color: #d4af37; font-size: 1rem; font-family: Oswald; font-weight: 700; margin: 0;">{format(entry_area, fmt)}</p></div><div style="text-align: center; flex: 1; border-left: 1px solid rgba(255,255,255,0.1);"><p style="color: #9ca3af; font-size: 0.6rem; margin: 0; font-weight: bold;">SL</p><p style="color: #ff3366; font-size: 1rem; font-family: Oswald; font-weight: 700; margin: 0;">{format(sl, fmt)}</p></div><div style="text-align: center; flex: 1; border-left: 1px solid rgba(255,255,255,0.1);"><p style="color: #9ca3af; font-size: 0.6rem; margin: 0; font-weight: bold;">TARGET</p><p style="color: #00ff88; font-size: 1rem; font-family: Oswald; font-weight: 700; margin: 0;">{format(tp1, fmt)}</p><p style="color: #00ff88; font-size: 0.7rem; font-family: Oswald; opacity: 0.6; margin: 0;">{format(tp2, fmt)}</p></div></div></div>'
+            st.markdown(html_content, unsafe_allow_html=True)

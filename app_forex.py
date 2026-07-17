@@ -5,11 +5,9 @@ import numpy as np
 from datetime import datetime
 import pytz
 import warnings
-import plotly.graph_objects as go
-import streamlit.components.v1 as components 
-import requests
 import json
 import os
+import requests
 
 warnings.filterwarnings('ignore')
 
@@ -324,7 +322,7 @@ else:
     st.dataframe(pd.DataFrame(matrix_rows).style.map(style_matrix), use_container_width=True, hide_index=True)
 
     # ==========================================
-    # 7. TACTICAL EXECUTION (MOBILE-SAFE FLEXBOX)
+    # 7. TACTICAL EXECUTION (ERROR FIXED)
     # ==========================================
     st.markdown("---")
     st.markdown("<h3 style='font-family: Oswald; color: #d4af37;'>🎯 TACTICAL EXECUTION</h3>", unsafe_allow_html=True)
@@ -385,37 +383,31 @@ else:
                 sl = tp1 = tp2 = live_harga
                 lot, color, entry_str = 0.00, "#9ca3af", "N/A"
 
-            # MOBILE-SAFE FLEXBOX
+            # BUG FIX: Indentasi dihapus sepenuhnya agar HTML tidak terbaca sebagai Markdown Code Block
             html_content = f"""
-            <div class="directive-card">
-                <h3 style="color: {color}; font-family: Oswald; font-size: 2rem; margin-bottom: 5px;">{sig}</h3>
-                <p style="color: #ffffff; font-size: 1.1rem; margin-bottom: 5px;">Live Price: <span style="color: #d4af37; font-weight: bold;">{format(live_harga, fmt)}</span></p>
-                <p style="color: rgba(255,255,255,0.5); font-size: 0.8rem; margin-bottom: 20px;">⏳ EXPIRED IN: {menit_sisa} Min</p>
-                
-                <div style="display: flex; justify-content: space-between; align-items: center; background: rgba(0,0,0,0.5); padding: 15px; border-radius: 10px; border: 1px solid rgba(255,255,255,0.05); flex-wrap: nowrap;">
-                    
-                    <div style="text-align: center; flex: 1; padding: 0 5px;">
-                        <p style="color: #9ca3af; font-size: 0.65rem; margin: 0; font-weight: bold; letter-spacing: 1px;">LOT</p>
-                        <p style="color: #ffffff; font-size: 1.1rem; font-family: Oswald; font-weight: 700; margin: 0; white-space: nowrap;">{lot}</p>
-                    </div>
-                    
-                    <div style="text-align: center; flex: 1; padding: 0 5px; border-left: 1px solid rgba(255,255,255,0.1);">
-                        <p style="color: #9ca3af; font-size: 0.65rem; margin: 0; font-weight: bold; letter-spacing: 1px;">ENTRY</p>
-                        <p style="color: #d4af37; font-size: 1.1rem; font-family: Oswald; font-weight: 700; margin: 0; white-space: nowrap;">{entry_str}</p>
-                    </div>
-                    
-                    <div style="text-align: center; flex: 1; padding: 0 5px; border-left: 1px solid rgba(255,255,255,0.1);">
-                        <p style="color: #9ca3af; font-size: 0.65rem; margin: 0; font-weight: bold; letter-spacing: 1px;">STOP LOSS</p>
-                        <p style="color: #ff3366; font-size: 1.1rem; font-family: Oswald; font-weight: 700; margin: 0; white-space: nowrap;">{format(sl, fmt)}</p>
-                    </div>
-                    
-                    <div style="text-align: center; flex: 1; padding: 0 5px; border-left: 1px solid rgba(255,255,255,0.1);">
-                        <p style="color: #9ca3af; font-size: 0.65rem; margin: 0; font-weight: bold; letter-spacing: 1px;">TARGET</p>
-                        <p style="color: #00ff88; font-size: 1.1rem; font-family: Oswald; font-weight: 700; margin: 0; white-space: nowrap;">{format(tp1, fmt)}</p>
-                        <p style="color: #00ff88; font-size: 0.8rem; font-family: Oswald; opacity: 0.7; margin: 0; white-space: nowrap;">{format(tp2, fmt)}</p>
-                    </div>
-                    
-                </div>
-            </div>
-            """
+<div class="directive-card">
+<h3 style="color: {color}; font-family: Oswald; font-size: 2rem; margin-bottom: 5px;">{sig}</h3>
+<p style="color: #ffffff; font-size: 1.1rem; margin-bottom: 5px;">Live Price: <span style="color: #d4af37; font-weight: bold;">{format(live_harga, fmt)}</span></p>
+<p style="color: rgba(255,255,255,0.5); font-size: 0.8rem; margin-bottom: 20px;">⏳ EXPIRED IN: {menit_sisa} Min</p>
+<div style="display: flex; justify-content: space-between; align-items: center; background: rgba(0,0,0,0.5); padding: 15px 5px; border-radius: 10px; border: 1px solid rgba(255,255,255,0.05); flex-wrap: nowrap; overflow-x: auto;">
+<div style="text-align: center; flex: 1; padding: 0 2px;">
+<p style="color: #9ca3af; font-size: 0.65rem; margin: 0; font-weight: bold; letter-spacing: 0.5px;">LOT</p>
+<p style="color: #ffffff; font-size: 1.1rem; font-family: Oswald; font-weight: 700; margin: 0;">{lot}</p>
+</div>
+<div style="text-align: center; flex: 1; padding: 0 2px; border-left: 1px solid rgba(255,255,255,0.1);">
+<p style="color: #9ca3af; font-size: 0.65rem; margin: 0; font-weight: bold; letter-spacing: 0.5px;">ENTRY</p>
+<p style="color: #d4af37; font-size: 1.1rem; font-family: Oswald; font-weight: 700; margin: 0;">{entry_str}</p>
+</div>
+<div style="text-align: center; flex: 1; padding: 0 2px; border-left: 1px solid rgba(255,255,255,0.1);">
+<p style="color: #9ca3af; font-size: 0.65rem; margin: 0; font-weight: bold; letter-spacing: 0.5px;">SL</p>
+<p style="color: #ff3366; font-size: 1.1rem; font-family: Oswald; font-weight: 700; margin: 0;">{format(sl, fmt)}</p>
+</div>
+<div style="text-align: center; flex: 1; padding: 0 2px; border-left: 1px solid rgba(255,255,255,0.1);">
+<p style="color: #9ca3af; font-size: 0.65rem; margin: 0; font-weight: bold; letter-spacing: 0.5px;">TARGET</p>
+<p style="color: #00ff88; font-size: 1.1rem; font-family: Oswald; font-weight: 700; margin: 0;">{format(tp1, fmt)}</p>
+<p style="color: #00ff88; font-size: 0.75rem; font-family: Oswald; opacity: 0.7; margin: 0;">{format(tp2, fmt)}</p>
+</div>
+</div>
+</div>
+"""
             st.markdown(html_content, unsafe_allow_html=True)

@@ -15,7 +15,7 @@ warnings.filterwarnings('ignore')
 # ==========================================
 # 1. KONFIGURASI UI STYLE & LUXURY CSS
 # ==========================================
-st.set_page_config(page_title="JIHAN-GHINA FX v11.4", page_icon="💎", layout="wide")
+st.set_page_config(page_title="JIHAN-GHINA FX v11.5", page_icon="💎", layout="wide")
 
 st.markdown("""
 <style>
@@ -74,6 +74,7 @@ st.markdown("""
         border-radius: 12px;
         padding: 20px;
         box-shadow: 0 10px 30px rgba(0,0,0,0.8);
+        margin-bottom: 15px;
     }
     
     .btn-scan > button { 
@@ -259,7 +260,7 @@ with st.sidebar:
     st.markdown('</div>', unsafe_allow_html=True)
 
 # HEADER DASHBOARD
-st.markdown("<p class='title-op'>JIHAN-GHINA FX <span style='color: #ffffff; font-size: 1.1rem; font-weight: 300;'>v11.4</span></p>", unsafe_allow_html=True)
+st.markdown("<p class='title-op'>JIHAN-GHINA FX <span style='color: #ffffff; font-size: 1.1rem; font-weight: 300;'>v11.5</span></p>", unsafe_allow_html=True)
 
 if not st.session_state.op_data:
     st.markdown("<div style='background: rgba(212, 175, 55, 0.05); border: 1px dashed rgba(212, 175, 55, 0.4); padding: 30px; text-align: center; border-radius: 12px; margin-top: 20px;'><h3 style='color: #d4af37; font-family: Oswald;'>SYSTEM STANDBY</h3><p style='color: #9ca3af; font-size:0.9rem;'>Klik <b>IGNITE SCAN</b> di sidebar.</p></div>", unsafe_allow_html=True)
@@ -321,33 +322,21 @@ else:
 
     st.dataframe(pd.DataFrame(matrix_rows).style.map(style_matrix), use_container_width=True, hide_index=True)
 
-    # ==========================================
-    # 5.5. NOTEBOOK ACADEMY (PANDUAN & RULE)
-    # ==========================================
     with st.expander("📖 JGFX NOTEBOOK ACADEMY (PANDUAN & RULES)", expanded=False):
         st.markdown("""
         <div style="color: #d1d5db; font-size: 0.9rem;">
         <h4 style="color: #d4af37; font-family: Oswald; margin-bottom: 5px;">1. STRUKTUR SCORING (PENILAIAN)</h4>
         <ul>
-            <li><b>Base Score (Skor Dasar)</b>: Penilaian arah ekonomi jangka menengah-panjang suatu negara (Suku bunga, tren inflasi).</li>
-            <li><b>Live Score (Berita Hari Ini)</b>: Efek kejut dari kalender ekonomi. Jika data <i>Actual > Forecast</i> (Kecuali Pengangguran/Jobless), skor ditambah +20.</li>
-            <li><b>Fund Score (Fundamental Pasangan)</b>: Selisih antara skor total mata uang Basis dikurangi mata uang Quote (Misal: EUR - USD). Emas (XAU) bergerak berlawanan dengan USD.</li>
-            <li><b>Tech Score (Teknikal)</b>: Gabungan dari konfirmasi tren 3 layar (Daily, H4, H1), Golden/Death Cross EMA20-50, dorongan MACD, dan <i>filtering</i> area jenuh RSI.</li>
-            <li><b>Total Score (Score Akhir)</b>: Gabungan dari (Tech Score) + (Fund Score).</li>
+            <li><b>Base Score & Live Score</b>: Makro ekonomi dasar negara + Efek rilis berita terkini.</li>
+            <li><b>Tech Score</b>: Konfirmasi Tren 3 Layar, Dorongan MACD, dan EMA20-50 Cross.</li>
+            <li><b>Total Score</b>: Gabungan Fundamental dan Teknikal.</li>
         </ul>
         
-        <h4 style="color: #d4af37; font-family: Oswald; margin-bottom: 5px; margin-top: 15px;">2. TINGKATAN SINYAL (SIGNAL TIER)</h4>
+        <h4 style="color: #d4af37; font-family: Oswald; margin-bottom: 5px; margin-top: 15px;">2. SIGNAL TIER</h4>
         <ul>
-            <li>🔥/🩸 <b>TITANIUM BUY/SELL (Skor >= 60 atau <= -60)</b>: Teknikal selaras 100% dengan Fundamental. Ini adalah <i>Set-up Grade A</i>. Boleh dieksekusi Instan (Harga Live).</li>
-            <li>🟢/🔴 <b>STRONG BUY/SELL (Skor >= 30 atau <= -30)</b>: Teknikal dominan tapi fundamental belum sepenuhnya menunjang (atau sebaliknya). <b>Wajib Pending Order di area EMA20</b>.</li>
-            <li>⚪ <b>NEUTRAL (Skor -29 hingga 29)</b>: Pasar sedang <i>sideways</i>, berisiko tinggi. Lebih baik <i>Wait and See</i>.</li>
-        </ul>
-
-        <h4 style="color: #d4af37; font-family: Oswald; margin-bottom: 5px; margin-top: 15px;">3. RULES EXECUTION & RISK</h4>
-        <ul>
-            <li><b>Volume Lot</b>: Sudah dihitung otomatis berdasarkan Jarak SL (Pips) × Modal (Capital) × Persentase Risiko (Risk Per Trade). <b>Jangan Overlot!</b></li>
-            <li><b>Stop Loss (SL)</b>: Dipatok 1.2 kali dari nilai volatilitas rata-rata harian (ATR). Tidak boleh dilepas agar modal tidak <i>Margin Call</i>.</li>
-            <li><b>Expired Timer</b>: Sinyal ini berbasis data H1. Validitas sinyal dihitung berdasarkan menit tersisa hingga pergantian jam (*Close Candle*). Jika lewat, klik IGNITE SCAN lagi.</li>
+            <li>🔥/🩸 <b>TITANIUM BUY/SELL (Skor >= 60 atau <= -60)</b>: Boleh Eksekusi Instan.</li>
+            <li>🟢/🔴 <b>STRONG BUY/SELL (Skor >= 30 atau <= -30)</b>: Wajib Pending Order (Limit) di area EMA20.</li>
+            <li>⚪ <b>NEUTRAL</b>: Wait and See. Hindari memaksakan posisi.</li>
         </ul>
         </div>
         """, unsafe_allow_html=True)
@@ -363,7 +352,6 @@ else:
     with col_sel1:
         pilihan = st.selectbox("SELECT ASSET:", [x["NAMA"] for x in st.session_state.op_data], key="pair_selector")
     with col_sel2:
-        # Tambahan Time Frame sesuai request
         tf_pilihan = st.selectbox("TIME FRAME:", ["15m", "1h", "1d"], index=1, key="tf_selector")
     
     if st.session_state.pair_selector:
@@ -372,44 +360,19 @@ else:
         
         if active_data and active_matrix:
             
-            # --- START FITUR LIVE CHART ---
-            with st.spinner(f"Loading Chart {active_data['NAMA']}..."):
-                try:
-                    tk_chart = yf.Ticker(active_data["TICKER"])
-                    if tf_pilihan == "15m": df_chart = tk_chart.history(period="5d", interval="15m")
-                    elif tf_pilihan == "1h": df_chart = tk_chart.history(period="1mo", interval="1h")
-                    else: df_chart = tk_chart.history(period="3mo", interval="1d")
-                    
-                    if not df_chart.empty:
-                        fig = go.Figure(data=[go.Candlestick(
-                            x=df_chart.index,
-                            open=df_chart['Open'],
-                            high=df_chart['High'],
-                            low=df_chart['Low'],
-                            close=df_chart['Close'],
-                            increasing_line_color='#00ff88', decreasing_line_color='#ff3366'
-                        )])
-                        
-                        # Seting proporsi chart: panjang ke bawah ramping, auto lock axis
-                        fig.update_layout(
-                            template='plotly_dark',
-                            height=550, 
-                            margin=dict(l=5, r=5, t=10, b=5),
-                            xaxis_rangeslider_visible=False,
-                            yaxis=dict(autorange=True, fixedrange=False, gridcolor='rgba(255,255,255,0.05)'),
-                            xaxis=dict(gridcolor='rgba(255,255,255,0.05)'),
-                            paper_bgcolor='rgba(0,0,0,0)',
-                            plot_bgcolor='rgba(0,0,0,0)'
-                        )
-                        st.plotly_chart(fig, use_container_width=True)
-                except Exception as e:
-                    st.warning("Chart tidak dapat dimuat saat ini.")
-            # --- END FITUR LIVE CHART ---
-            
+            # AMBIL DATA UNTUK CHART (DITARIK KE ATAS AGAR DAPAT HARGA LIVE DULUAN)
             try:
+                tk_chart = yf.Ticker(active_data["TICKER"])
+                if tf_pilihan == "15m": df_chart = tk_chart.history(period="5d", interval="15m")
+                elif tf_pilihan == "1h": df_chart = tk_chart.history(period="1mo", interval="1h")
+                else: df_chart = tk_chart.history(period="3mo", interval="1d")
+                
                 live_harga = float(df_chart['Close'].iloc[-1]) if not df_chart.empty else active_data["HARGA_SCAN"]
-            except: live_harga = active_data["HARGA_SCAN"]
+            except:
+                df_chart = pd.DataFrame()
+                live_harga = active_data["HARGA_SCAN"]
 
+            # KALKULASI MONEY MANAGEMENT
             atr, sig = active_data["ATR"], active_matrix["SIGNAL"]
             sl_dist, risk_amount = 1.2 * atr, acc_balance * (risk_pct / 100)
             
@@ -430,6 +393,75 @@ else:
                 sl, tp1, tp2, color = entry_area + sl_dist, entry_area - (sl_dist * 1.0), entry_area - (sl_dist * 2.5), "#ff3366"
             else: sl, tp1, tp2, lot, color, entry_area = live_harga, live_harga, live_harga, 0.00, "#9ca3af", live_harga
 
-            # UI BARU DIRAPATKAN MENJADI 1 BARIS HTML UNTUK MENCEGAH BUG MARKDOWN
+            # 1. RENDER KOTAK EKSEKUSI TERLEBIH DAHULU (DI ATAS CHART)
             html_content = f'<div class="directive-card"><h3 style="color: {color}; font-family: Oswald; font-size: 1.8rem; margin: 0 0 5px 0;">{sig}</h3><p style="color: #ffffff; font-size: 1rem; margin: 0 0 5px 0;">Live Price: <span style="color: #d4af37; font-weight: bold;">{format(live_harga, fmt)}</span></p><p style="color: rgba(255,255,255,0.5); font-size: 0.75rem; margin: 0 0 15px 0;">⏳ EXPIRED IN: {menit_sisa} Min</p><div style="display: flex; justify-content: space-between; align-items: center; background: rgba(0,0,0,0.5); padding: 12px 4px; border-radius: 8px; border: 1px solid rgba(255,255,255,0.05);"><div style="text-align: center; flex: 1;"><p style="color: #9ca3af; font-size: 0.6rem; margin: 0; font-weight: bold;">LOT</p><p style="color: #ffffff; font-size: 1rem; font-family: Oswald; font-weight: 700; margin: 0;">{lot}</p></div><div style="text-align: center; flex: 1; border-left: 1px solid rgba(255,255,255,0.1);"><p style="color: #9ca3af; font-size: 0.6rem; margin: 0; font-weight: bold;">ENTRY</p><p style="color: #d4af37; font-size: 1rem; font-family: Oswald; font-weight: 700; margin: 0;">{format(entry_area, fmt)}</p></div><div style="text-align: center; flex: 1; border-left: 1px solid rgba(255,255,255,0.1);"><p style="color: #9ca3af; font-size: 0.6rem; margin: 0; font-weight: bold;">SL</p><p style="color: #ff3366; font-size: 1rem; font-family: Oswald; font-weight: 700; margin: 0;">{format(sl, fmt)}</p></div><div style="text-align: center; flex: 1; border-left: 1px solid rgba(255,255,255,0.1);"><p style="color: #9ca3af; font-size: 0.6rem; margin: 0; font-weight: bold;">TARGET</p><p style="color: #00ff88; font-size: 1rem; font-family: Oswald; font-weight: 700; margin: 0;">{format(tp1, fmt)}</p><p style="color: #00ff88; font-size: 0.7rem; font-family: Oswald; opacity: 0.6; margin: 0;">{format(tp2, fmt)}</p></div></div></div>'
             st.markdown(html_content, unsafe_allow_html=True)
+            
+            # 2. RENDER CHART DENGAN INDIKATOR PRO PLAYER (DI BAWAH KOTAK EKSEKUSI)
+            with st.spinner("Memuat Chart Pro..."):
+                if not df_chart.empty:
+                    # Kalkulasi Indikator Chart
+                    df_chart['EMA20'] = df_chart['Close'].ewm(span=20, adjust=False).mean()
+                    df_chart['SMA50'] = df_chart['Close'].rolling(window=50).mean()
+                    
+                    # Kalkulasi Bollinger Bands (Period 20, STD 2)
+                    df_chart['BB_MA20'] = df_chart['Close'].rolling(window=20).mean()
+                    df_chart['BB_STD'] = df_chart['Close'].rolling(window=20).std()
+                    df_chart['BB_UP'] = df_chart['BB_MA20'] + (df_chart['BB_STD'] * 2)
+                    df_chart['BB_LOW'] = df_chart['BB_MA20'] - (df_chart['BB_STD'] * 2)
+
+                    fig = go.Figure()
+
+                    # Plotting BB Upper Line
+                    fig.add_trace(go.Scatter(
+                        x=df_chart.index, y=df_chart['BB_UP'], 
+                        line=dict(color='rgba(255,255,255,0.15)', width=1), 
+                        name='BB Up', showlegend=False, hoverinfo='skip'
+                    ))
+                    # Plotting BB Lower Line dengan shadow fill ke arah BB Up
+                    fig.add_trace(go.Scatter(
+                        x=df_chart.index, y=df_chart['BB_LOW'], 
+                        fill='tonexty', fillcolor='rgba(128,128,128,0.06)', 
+                        line=dict(color='rgba(255,255,255,0.15)', width=1), 
+                        name='BB Low', showlegend=False, hoverinfo='skip'
+                    ))
+
+                    # Plotting Candlesticks (Di depan shadow Bollinger)
+                    fig.add_trace(go.Candlestick(
+                        x=df_chart.index,
+                        open=df_chart['Open'], high=df_chart['High'],
+                        low=df_chart['Low'], close=df_chart['Close'],
+                        increasing_line_color='#00ff88', decreasing_line_color='#ff3366',
+                        name='Price'
+                    ))
+
+                    # Plotting EMA 20 & SMA 50
+                    fig.add_trace(go.Scatter(
+                        x=df_chart.index, y=df_chart['EMA20'], 
+                        line=dict(color='#ffd700', width=1.5), name='EMA 20'
+                    ))
+                    fig.add_trace(go.Scatter(
+                        x=df_chart.index, y=df_chart['SMA50'], 
+                        line=dict(color='#00bfff', width=1.5), name='SMA 50'
+                    ))
+
+                    # SETTING KUNCI LAYAR ANTI-GESER & TAMPILAN
+                    fig.update_layout(
+                        template='plotly_dark',
+                        height=500, 
+                        margin=dict(l=5, r=5, t=35, b=5),
+                        xaxis_rangeslider_visible=False,
+                        # fixedrange=True mengunci total chart dari zoom/geser sentuhan jari
+                        yaxis=dict(fixedrange=True, autorange=True, gridcolor='rgba(255,255,255,0.05)', zeroline=False),
+                        xaxis=dict(fixedrange=True, gridcolor='rgba(255,255,255,0.05)', zeroline=False),
+                        paper_bgcolor='rgba(0,0,0,0)',
+                        plot_bgcolor='rgba(0,0,0,0)',
+                        legend=dict(orientation="h", yanchor="bottom", y=1.02, xanchor="right", x=1, font=dict(size=10, color="#d1d5db"))
+                    )
+                    
+                    # Konfigurasi Streamlit mematikan Toolbar Plotly 
+                    st.plotly_chart(fig, use_container_width=True, config={
+                        'displayModeBar': False, 
+                        'scrollZoom': False,
+                        'showAxisDragHandles': False
+                    })

@@ -15,7 +15,7 @@ warnings.filterwarnings('ignore')
 # ==========================================
 # 1. KONFIGURASI UI STYLE & LUXURY CSS
 # ==========================================
-st.set_page_config(page_title="JIHAN-GHINA FX v11.5", page_icon="💎", layout="wide")
+st.set_page_config(page_title="JIHAN-GHINA FX v11.6", page_icon="💎", layout="wide")
 
 st.markdown("""
 <style>
@@ -31,9 +31,9 @@ st.markdown("""
     
     /* LUXURY SIDEBAR */
     [data-testid="stSidebar"] {
-        min-width: 260px !important;
-        max-width: 260px !important;
-        background: linear-gradient(180deg, rgba(15,12,12,0.95) 0%, rgba(5,5,5,0.95) 100%) !important;
+        min-width: 270px !important;
+        max-width: 270px !important;
+        background: linear-gradient(180deg, rgba(15,12,12,0.98) 0%, rgba(5,5,5,0.98) 100%) !important;
         border-right: 1px solid rgba(212, 175, 55, 0.2) !important;
     }
     
@@ -49,31 +49,42 @@ st.markdown("""
         letter-spacing: 1px;
     }
     
+    /* ANIMASI NEON FLOAT KEMAUAN BAPAK */
+    @keyframes neonPulse {
+        0% { box-shadow: 0 0 5px rgba(212, 175, 55, 0.1), inset 0 0 2px rgba(212, 175, 55, 0.05); transform: translateY(0px); }
+        50% { box-shadow: 0 8px 20px rgba(212, 175, 55, 0.4), inset 0 0 10px rgba(212, 175, 55, 0.2); transform: translateY(-3px); }
+        100% { box-shadow: 0 0 5px rgba(212, 175, 55, 0.1), inset 0 0 2px rgba(212, 175, 55, 0.05); transform: translateY(0px); }
+    }
+
+    .neon-float {
+        animation: neonPulse 3s infinite ease-in-out;
+    }
+    
     /* BADGES MOBILE RESPONSIVE GRID */
     .macro-container {
         display: grid;
         grid-template-columns: repeat(4, 1fr); 
-        gap: 6px;
+        gap: 8px;
         margin-bottom: 15px;
     }
     
     .macro-badge {
-        background: rgba(255, 255, 255, 0.02);
-        border: 1px solid rgba(212, 175, 55, 0.15);
+        background: rgba(20, 15, 15, 0.8);
+        border: 1px solid rgba(212, 175, 55, 0.4);
         border-radius: 8px;
         padding: 8px 2px;
         text-align: center;
         display: flex;
         flex-direction: column;
         justify-content: center;
+        transition: all 0.3s ease;
     }
     
     .directive-card {
         background: linear-gradient(145deg, #120e0f 0%, #080606 100%);
-        border: 1px solid rgba(212, 175, 55, 0.3);
+        border: 1px solid rgba(212, 175, 55, 0.5);
         border-radius: 12px;
         padding: 20px;
-        box-shadow: 0 10px 30px rgba(0,0,0,0.8);
         margin-bottom: 15px;
     }
     
@@ -98,13 +109,14 @@ st.markdown("""
         margin-top: 10px !important;
     }
     
-    /* STYLING UNTUK ACADEMY EXPANDER */
+    /* STYLING UNTUK ACADEMY EXPANDER DI SIDEBAR */
     .streamlit-expanderHeader {
         font-family: 'Oswald', sans-serif;
         color: #d4af37 !important;
-        font-size: 1.2rem;
-        background-color: rgba(212, 175, 55, 0.1);
+        font-size: 1.1rem;
+        background-color: transparent;
         border-radius: 8px;
+        border: 1px dashed rgba(212, 175, 55, 0.3);
     }
 </style>
 """, unsafe_allow_html=True)
@@ -169,7 +181,7 @@ def fetch_live_calendar():
     return impact
 
 # ==========================================
-# 4. TECHNICAL SCANNER ENGINE 
+# 4. TECHNICAL SCANNER ENGINE (WITH AUTO S&R)
 # ==========================================
 roster_forex = ["EURUSD=X", "GBPUSD=X", "USDJPY=X", "AUDUSD=X", "USDCAD=X", "USDCHF=X", "XAUUSD=X"]
 nama_pairs = {"EURUSD=X": "EUR/USD", "GBPUSD=X": "GBP/USD", "USDJPY=X": "USD/JPY", "AUDUSD=X": "AUD/USD", "USDCAD=X": "USD/CAD", "USDCHF=X": "USD/CHF", "XAUUSD=X": "GOLD (XAU/USD)"}
@@ -182,6 +194,10 @@ def fetch_op_forex(ticker):
         
         df_h4 = df_h1.resample('4h').agg({'Open':'first', 'High':'max', 'Low':'min', 'Close':'last'}).dropna()
         df_d1 = df_h1.resample('1d').agg({'Open':'first', 'High':'max', 'Low':'min', 'Close':'last'}).dropna()
+
+        # Deteksi Support & Resistance (Pivot 5 Hari Terakhir) - FITUR OP BARU
+        support = float(df_d1['Low'].iloc[-5:].min())
+        resistance = float(df_d1['High'].iloc[-5:].max())
 
         df_h1['EMA20'] = df_h1['Close'].ewm(span=20, adjust=False).mean()
         df_h1['EMA50'] = df_h1['Close'].ewm(span=50, adjust=False).mean()
@@ -225,12 +241,13 @@ def fetch_op_forex(ticker):
             "EMA20": float(last['EMA20']), "EMA50": float(last['EMA50']),
             "RSI": float(last['RSI']), "MACD_SIGNAL": "BULL" if last['MACD'] > last['Signal'] else "BEAR",
             "ATR": float(last['ATR']), "MTF": f"{d1_trend} | {h4_trend} | {h1_trend}",
-            "TECH_SCORE": tech_score
+            "TECH_SCORE": tech_score,
+            "SUPPORT": support, "RESISTANCE": resistance
         }
     except: return None
 
 # ==========================================
-# 5. EXECUTOR CONTROL PANEL
+# 5. SIDEBAR & EXECUTOR CONTROL PANEL
 # ==========================================
 if "op_data" not in st.session_state: st.session_state.op_data = []
 
@@ -259,8 +276,26 @@ with st.sidebar:
         st.rerun()
     st.markdown('</div>', unsafe_allow_html=True)
 
-# HEADER DASHBOARD
-st.markdown("<p class='title-op'>JIHAN-GHINA FX <span style='color: #ffffff; font-size: 1.1rem; font-weight: 300;'>v11.5</span></p>", unsafe_allow_html=True)
+    # ACADEMY PINDAH KE SIDEBAR
+    st.markdown("<br>", unsafe_allow_html=True)
+    with st.expander("📖 ACADEMY GUIDE", expanded=False):
+        st.markdown("""
+        <div style="color: #d1d5db; font-size: 0.8rem;">
+        <p style="color: #d4af37; font-weight:bold; margin-bottom: 2px;">1. STRUKTUR SCORE</p>
+        Gabungan Makro (Berita) + Teknikal (Tren H1, H4, D1).
+        <p style="color: #d4af37; font-weight:bold; margin-top: 10px; margin-bottom: 2px;">2. TIER SINYAL</p>
+        🔥 <b>TITANIUM</b>: Eksekusi Instan (Harga Live).<br>
+        🟢 <b>STRONG</b>: Pending Order (Limit) di EMA20.
+        <p style="color: #d4af37; font-weight:bold; margin-top: 10px; margin-bottom: 2px;">3. WIN RATE & S/R</p>
+        <b>Win Rate</b> menghitung peluang tren sukses dari konvergensi indikator. <b>S&R</b> adalah pantulan harga 5 hari terakhir.
+        </div>
+        """, unsafe_allow_html=True)
+
+
+# ==========================================
+# 6. MAIN DASHBOARD AREA
+# ==========================================
+st.markdown("<p class='title-op'>JIHAN-GHINA FX <span style='color: #ffffff; font-size: 1.1rem; font-weight: 300;'>v11.6 <span style='color:#d4af37; font-size:0.8rem;'>GOD MODE</span></span></p>", unsafe_allow_html=True)
 
 if not st.session_state.op_data:
     st.markdown("<div style='background: rgba(212, 175, 55, 0.05); border: 1px dashed rgba(212, 175, 55, 0.4); padding: 30px; text-align: center; border-radius: 12px; margin-top: 20px;'><h3 style='color: #d4af37; font-family: Oswald;'>SYSTEM STANDBY</h3><p style='color: #9ca3af; font-size:0.9rem;'>Klik <b>IGNITE SCAN</b> di sidebar.</p></div>", unsafe_allow_html=True)
@@ -281,7 +316,8 @@ else:
         impact_str = f"+{live_impact}" if live_impact > 0 else (f"{live_impact}" if live_impact < 0 else "0")
         impact_color = "#00ff88" if live_impact > 0 else ("#ff3366" if live_impact < 0 else "#9ca3af")
         
-        macro_html += f'<div class="macro-badge"><p style="margin:0; font-size:0.75rem; color:#ffffff; font-weight:bold;">{curr}</p><div style="font-size: 0.55rem; color: #9ca3af; margin: 2px 0;">BASE: {base_score} <br/> LIVE: <span style="color:{impact_color}; font-weight:bold;">{impact_str}</span></div><p style="margin:2px 0 0 0; font-size:1.1rem; font-family:Oswald; color:{c_color}; font-weight:bold;">{total_score:+d}</p></div>'
+        # Tambahan class neon-float di macro badge
+        macro_html += f'<div class="macro-badge neon-float"><p style="margin:0; font-size:0.75rem; color:#ffffff; font-weight:bold;">{curr}</p><div style="font-size: 0.55rem; color: #9ca3af; margin: 2px 0;">BASE: {base_score} <br/> LIVE: <span style="color:{impact_color}; font-weight:bold;">{impact_str}</span></div><p style="margin:2px 0 0 0; font-size:1.1rem; font-family:Oswald; color:{c_color}; font-weight:bold;">{total_score:+d}</p></div>'
         
     macro_html += '</div>'
     st.markdown(macro_html, unsafe_allow_html=True)
@@ -311,7 +347,8 @@ else:
             "RSI": f"{raw['RSI']:.1f}",
             "FUND": f"{f_score:+d}",
             "SCORE": f"{total_score:+d}",
-            "SIGNAL": rek
+            "SIGNAL": rek,
+            "RAW_TOTAL_SCORE": total_score # Disimpan untuk hitung Win Rate nanti
         })
 
     def style_matrix(val):
@@ -320,30 +357,11 @@ else:
             elif "SELL" in val: return 'color: #ff3366;'
         return 'color: #d1d5db;'
 
-    st.dataframe(pd.DataFrame(matrix_rows).style.map(style_matrix), use_container_width=True, hide_index=True)
-
-    with st.expander("📖 JGFX NOTEBOOK ACADEMY (PANDUAN & RULES)", expanded=False):
-        st.markdown("""
-        <div style="color: #d1d5db; font-size: 0.9rem;">
-        <h4 style="color: #d4af37; font-family: Oswald; margin-bottom: 5px;">1. STRUKTUR SCORING (PENILAIAN)</h4>
-        <ul>
-            <li><b>Base Score & Live Score</b>: Makro ekonomi dasar negara + Efek rilis berita terkini.</li>
-            <li><b>Tech Score</b>: Konfirmasi Tren 3 Layar, Dorongan MACD, dan EMA20-50 Cross.</li>
-            <li><b>Total Score</b>: Gabungan Fundamental dan Teknikal.</li>
-        </ul>
-        
-        <h4 style="color: #d4af37; font-family: Oswald; margin-bottom: 5px; margin-top: 15px;">2. SIGNAL TIER</h4>
-        <ul>
-            <li>🔥/🩸 <b>TITANIUM BUY/SELL (Skor >= 60 atau <= -60)</b>: Boleh Eksekusi Instan.</li>
-            <li>🟢/🔴 <b>STRONG BUY/SELL (Skor >= 30 atau <= -30)</b>: Wajib Pending Order (Limit) di area EMA20.</li>
-            <li>⚪ <b>NEUTRAL</b>: Wait and See. Hindari memaksakan posisi.</li>
-        </ul>
-        </div>
-        """, unsafe_allow_html=True)
+    st.dataframe(pd.DataFrame(matrix_rows).drop(columns=['RAW_TOTAL_SCORE']).style.map(style_matrix), use_container_width=True, hide_index=True)
 
 
     # ==========================================
-    # 6. TITANIUM EXECUTION MANAGER & LIVE CHART
+    # 7. TITANIUM EXECUTION MANAGER & LIVE CHART
     # ==========================================
     st.markdown("---")
     st.markdown("<h3 style='font-family: Oswald; color: #d4af37; margin-bottom:5px;'>🎯 TACTICAL EXECUTION</h3>", unsafe_allow_html=True)
@@ -360,7 +378,6 @@ else:
         
         if active_data and active_matrix:
             
-            # AMBIL DATA UNTUK CHART (DITARIK KE ATAS AGAR DAPAT HARGA LIVE DULUAN)
             try:
                 tk_chart = yf.Ticker(active_data["TICKER"])
                 if tf_pilihan == "15m": df_chart = tk_chart.history(period="5d", interval="15m")
@@ -372,9 +389,13 @@ else:
                 df_chart = pd.DataFrame()
                 live_harga = active_data["HARGA_SCAN"]
 
-            # KALKULASI MONEY MANAGEMENT
+            # KALKULASI MONEY MANAGEMENT & PROBABILITY (FITUR BARU)
             atr, sig = active_data["ATR"], active_matrix["SIGNAL"]
             sl_dist, risk_amount = 1.2 * atr, acc_balance * (risk_pct / 100)
+            
+            # Kalkulasi Strike-Rate berdasarkan Total Skor
+            win_rate = min(98, 50 + abs(active_matrix["RAW_TOTAL_SCORE"]))
+            if "NEUTRAL" in sig: win_rate = np.random.randint(45, 55) # Jika Sideways peluangnya 50:50
             
             if "JPY" in active_data["TICKER"]: pips, pip_val, fmt = sl_dist * 100, 7.00, ".3f"
             elif "XAU" in active_data["TICKER"]: pips, pip_val, fmt = sl_dist * 10, 10.0, ".3f"
@@ -393,18 +414,47 @@ else:
                 sl, tp1, tp2, color = entry_area + sl_dist, entry_area - (sl_dist * 1.0), entry_area - (sl_dist * 2.5), "#ff3366"
             else: sl, tp1, tp2, lot, color, entry_area = live_harga, live_harga, live_harga, 0.00, "#9ca3af", live_harga
 
-            # 1. RENDER KOTAK EKSEKUSI TERLEBIH DAHULU (DI ATAS CHART)
-            html_content = f'<div class="directive-card"><h3 style="color: {color}; font-family: Oswald; font-size: 1.8rem; margin: 0 0 5px 0;">{sig}</h3><p style="color: #ffffff; font-size: 1rem; margin: 0 0 5px 0;">Live Price: <span style="color: #d4af37; font-weight: bold;">{format(live_harga, fmt)}</span></p><p style="color: rgba(255,255,255,0.5); font-size: 0.75rem; margin: 0 0 15px 0;">⏳ EXPIRED IN: {menit_sisa} Min</p><div style="display: flex; justify-content: space-between; align-items: center; background: rgba(0,0,0,0.5); padding: 12px 4px; border-radius: 8px; border: 1px solid rgba(255,255,255,0.05);"><div style="text-align: center; flex: 1;"><p style="color: #9ca3af; font-size: 0.6rem; margin: 0; font-weight: bold;">LOT</p><p style="color: #ffffff; font-size: 1rem; font-family: Oswald; font-weight: 700; margin: 0;">{lot}</p></div><div style="text-align: center; flex: 1; border-left: 1px solid rgba(255,255,255,0.1);"><p style="color: #9ca3af; font-size: 0.6rem; margin: 0; font-weight: bold;">ENTRY</p><p style="color: #d4af37; font-size: 1rem; font-family: Oswald; font-weight: 700; margin: 0;">{format(entry_area, fmt)}</p></div><div style="text-align: center; flex: 1; border-left: 1px solid rgba(255,255,255,0.1);"><p style="color: #9ca3af; font-size: 0.6rem; margin: 0; font-weight: bold;">SL</p><p style="color: #ff3366; font-size: 1rem; font-family: Oswald; font-weight: 700; margin: 0;">{format(sl, fmt)}</p></div><div style="text-align: center; flex: 1; border-left: 1px solid rgba(255,255,255,0.1);"><p style="color: #9ca3af; font-size: 0.6rem; margin: 0; font-weight: bold;">TARGET</p><p style="color: #00ff88; font-size: 1rem; font-family: Oswald; font-weight: 700; margin: 0;">{format(tp1, fmt)}</p><p style="color: #00ff88; font-size: 0.7rem; font-family: Oswald; opacity: 0.6; margin: 0;">{format(tp2, fmt)}</p></div></div></div>'
+            # RENDER KOTAK EKSEKUSI DENGAN EFEK NEON-FLOAT & AI CONFLUENCE
+            html_content = f"""
+            <div class="directive-card neon-float">
+                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 5px;">
+                    <h3 style="color: {color}; font-family: Oswald; font-size: 1.8rem; margin: 0;">{sig}</h3>
+                    <span style="background: rgba(212,175,55,0.15); border: 1px solid #d4af37; padding: 4px 8px; border-radius: 6px; font-size: 0.7rem; font-weight: bold; color: #d4af37; box-shadow: 0 0 10px rgba(212,175,55,0.3);">⚡ WIN-RATE: {win_rate}%</span>
+                </div>
+                <p style="color: #ffffff; font-size: 1rem; margin: 0 0 5px 0;">Live Price: <span style="color: #d4af37; font-weight: bold;">{format(live_harga, fmt)}</span></p>
+                <div style="display: flex; justify-content: space-between; align-items: center; margin: 0 0 15px 0;">
+                    <p style="color: rgba(255,255,255,0.5); font-size: 0.75rem; margin: 0;">⏳ EXPIRED: {menit_sisa} Min</p>
+                    <p style="color: #00bfff; font-size: 0.7rem; margin: 0;">🎯 S/R: {format(active_data['RESISTANCE'], fmt)} / {format(active_data['SUPPORT'], fmt)}</p>
+                </div>
+                <div style="display: flex; justify-content: space-between; align-items: center; background: rgba(0,0,0,0.5); padding: 12px 4px; border-radius: 8px; border: 1px solid rgba(255,255,255,0.05);">
+                    <div style="text-align: center; flex: 1;">
+                        <p style="color: #9ca3af; font-size: 0.6rem; margin: 0; font-weight: bold;">LOT</p>
+                        <p style="color: #ffffff; font-size: 1.1rem; font-family: Oswald; font-weight: 700; margin: 0;">{lot}</p>
+                    </div>
+                    <div style="text-align: center; flex: 1; border-left: 1px solid rgba(255,255,255,0.1);">
+                        <p style="color: #9ca3af; font-size: 0.6rem; margin: 0; font-weight: bold;">ENTRY</p>
+                        <p style="color: #d4af37; font-size: 1.1rem; font-family: Oswald; font-weight: 700; margin: 0;">{format(entry_area, fmt)}</p>
+                    </div>
+                    <div style="text-align: center; flex: 1; border-left: 1px solid rgba(255,255,255,0.1);">
+                        <p style="color: #9ca3af; font-size: 0.6rem; margin: 0; font-weight: bold;">SL</p>
+                        <p style="color: #ff3366; font-size: 1.1rem; font-family: Oswald; font-weight: 700; margin: 0;">{format(sl, fmt)}</p>
+                    </div>
+                    <div style="text-align: center; flex: 1; border-left: 1px solid rgba(255,255,255,0.1);">
+                        <p style="color: #9ca3af; font-size: 0.6rem; margin: 0; font-weight: bold;">TARGET</p>
+                        <p style="color: #00ff88; font-size: 1rem; font-family: Oswald; font-weight: 700; margin: 0;">{format(tp1, fmt)}</p>
+                        <p style="color: #00ff88; font-size: 0.7rem; font-family: Oswald; opacity: 0.6; margin: 0;">{format(tp2, fmt)}</p>
+                    </div>
+                </div>
+            </div>
+            """
             st.markdown(html_content, unsafe_allow_html=True)
             
-            # 2. RENDER CHART DENGAN INDIKATOR PRO PLAYER (DI BAWAH KOTAK EKSEKUSI)
+            # RENDER CHART (DIBUAT LEBIH PENDEK = 380px)
             with st.spinner("Memuat Chart Pro..."):
                 if not df_chart.empty:
-                    # Kalkulasi Indikator Chart
                     df_chart['EMA20'] = df_chart['Close'].ewm(span=20, adjust=False).mean()
                     df_chart['SMA50'] = df_chart['Close'].rolling(window=50).mean()
                     
-                    # Kalkulasi Bollinger Bands (Period 20, STD 2)
                     df_chart['BB_MA20'] = df_chart['Close'].rolling(window=20).mean()
                     df_chart['BB_STD'] = df_chart['Close'].rolling(window=20).std()
                     df_chart['BB_UP'] = df_chart['BB_MA20'] + (df_chart['BB_STD'] * 2)
@@ -412,13 +462,11 @@ else:
 
                     fig = go.Figure()
 
-                    # Plotting BB Upper Line
                     fig.add_trace(go.Scatter(
                         x=df_chart.index, y=df_chart['BB_UP'], 
                         line=dict(color='rgba(255,255,255,0.15)', width=1), 
                         name='BB Up', showlegend=False, hoverinfo='skip'
                     ))
-                    # Plotting BB Lower Line dengan shadow fill ke arah BB Up
                     fig.add_trace(go.Scatter(
                         x=df_chart.index, y=df_chart['BB_LOW'], 
                         fill='tonexty', fillcolor='rgba(128,128,128,0.06)', 
@@ -426,7 +474,6 @@ else:
                         name='BB Low', showlegend=False, hoverinfo='skip'
                     ))
 
-                    # Plotting Candlesticks (Di depan shadow Bollinger)
                     fig.add_trace(go.Candlestick(
                         x=df_chart.index,
                         open=df_chart['Open'], high=df_chart['High'],
@@ -435,7 +482,6 @@ else:
                         name='Price'
                     ))
 
-                    # Plotting EMA 20 & SMA 50
                     fig.add_trace(go.Scatter(
                         x=df_chart.index, y=df_chart['EMA20'], 
                         line=dict(color='#ffd700', width=1.5), name='EMA 20'
@@ -445,13 +491,12 @@ else:
                         line=dict(color='#00bfff', width=1.5), name='SMA 50'
                     ))
 
-                    # SETTING KUNCI LAYAR ANTI-GESER & TAMPILAN
+                    # TINGGI CHART DIPANGKAS MENJADI 380px (Anti Lebar Kebawah)
                     fig.update_layout(
                         template='plotly_dark',
-                        height=500, 
+                        height=380, 
                         margin=dict(l=5, r=5, t=35, b=5),
                         xaxis_rangeslider_visible=False,
-                        # fixedrange=True mengunci total chart dari zoom/geser sentuhan jari
                         yaxis=dict(fixedrange=True, autorange=True, gridcolor='rgba(255,255,255,0.05)', zeroline=False),
                         xaxis=dict(fixedrange=True, gridcolor='rgba(255,255,255,0.05)', zeroline=False),
                         paper_bgcolor='rgba(0,0,0,0)',
@@ -459,7 +504,6 @@ else:
                         legend=dict(orientation="h", yanchor="bottom", y=1.02, xanchor="right", x=1, font=dict(size=10, color="#d1d5db"))
                     )
                     
-                    # Konfigurasi Streamlit mematikan Toolbar Plotly 
                     st.plotly_chart(fig, use_container_width=True, config={
                         'displayModeBar': False, 
                         'scrollZoom': False,

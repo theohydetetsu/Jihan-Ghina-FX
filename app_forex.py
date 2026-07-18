@@ -16,7 +16,7 @@ warnings.filterwarnings('ignore')
 # ==========================================
 # 1. KONFIGURASI UI STYLE & LUXURY CSS
 # ==========================================
-st.set_page_config(page_title="JIHAN-GHINA FX v11.8", page_icon="💎", layout="wide")
+st.set_page_config(page_title="JIHAN-GHINA FX v11.8", page_icon="logo.png", layout="wide")
 
 st.markdown("""
 <style>
@@ -230,7 +230,7 @@ if "op_data" not in st.session_state: st.session_state.op_data = []
 if "new_scan" not in st.session_state: st.session_state.new_scan = False
 
 with st.sidebar:
-    st.markdown("<h3 style='color: #d4af37; font-family: Oswald; font-size: 1.5rem;'>☠️ OP CONTROL</h3>", unsafe_allow_html=True)
+    st.markdown("<h3 style='color: #d4af37; font-family: Oswald; font-size: 1.5rem;'>☠️ KILLER FX</h3>", unsafe_allow_html=True)
     
     saved_cap = load_capital()
     acc_balance = st.number_input("CAPITAL (USD):", min_value=10.0, value=float(saved_cap), step=100.0, key="input_modal", on_change=save_capital)

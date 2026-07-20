@@ -16,7 +16,7 @@ warnings.filterwarnings('ignore')
 # ==========================================
 # 1. KONFIGURASI UI STYLE & LUXURY CSS
 # ==========================================
-st.set_page_config(page_title="JIHAN-GHINA FX v11.8", page_icon="logo.png", layout="wide")
+st.set_page_config(page_title="JIHAN-GHINA FX v11.9", page_icon="💎", layout="wide")
 
 st.markdown("""
 <style>
@@ -28,10 +28,8 @@ st.markdown("""
         color: #f3f4f6 !important; 
     }
     
-    /* FIX JUDUL TERTUTUP: Tambah padding-top yang cukup untuk mobile */
     .block-container { padding-top: 3.5rem !important; padding-bottom: 2rem; max-width: 100% !important; }
     
-    /* LUXURY SIDEBAR */
     [data-testid="stSidebar"] {
         min-width: 270px !important;
         max-width: 270px !important;
@@ -144,8 +142,10 @@ DB_MACRO_BASE = {
 
 def fetch_live_calendar():
     impact = {k: 0 for k in DB_MACRO_BASE.keys()}
+    api_status = "OK"
     try:
-        resp = requests.get("https://nfs.gweb.io/analytics/calendar/this-week", headers={"User-Agent": "Mozilla/5.0"}, timeout=3)
+        # Timeout dinaikkan dari 3 ke 10 detik agar lebih stabil
+        resp = requests.get("https://nfs.gweb.io/analytics/calendar/this-week", headers={"User-Agent": "Mozilla/5.0"}, timeout=10)
         if resp.status_code == 200:
             for ev in resp.json():
                 curr = ev.get("currency", "").upper()
@@ -162,8 +162,12 @@ def fetch_live_calendar():
                             if not is_inverse: impact[curr] += 20 if a > f else (-20 if a < f else 0)
                             else: impact[curr] += 20 if a < f else (-20 if a > f else 0)
                         except: pass
-    except: pass
-    return impact
+        else:
+            api_status = f"ERROR HTTP {resp.status_code}"
+    except Exception as e: 
+        api_status = "API TIMEOUT/OFFLINE"
+    
+    return impact, api_status
 
 roster_forex = ["EURUSD=X", "GBPUSD=X", "USDJPY=X", "AUDUSD=X", "USDCAD=X", "USDCHF=X", "XAUUSD=X"]
 nama_pairs = {"EURUSD=X": "EUR/USD", "GBPUSD=X": "GBP/USD", "USDJPY=X": "USD/JPY", "AUDUSD=X": "AUD/USD", "USDCAD=X": "USD/CAD", "USDCHF=X": "USD/CHF", "XAUUSD=X": "GOLD (XAU/USD)"}
@@ -230,25 +234,46 @@ if "op_data" not in st.session_state: st.session_state.op_data = []
 if "new_scan" not in st.session_state: st.session_state.new_scan = False
 
 with st.sidebar:
-    st.markdown("<h3 style='color: #d4af37; font-family: Oswald; font-size: 1.5rem;'>☠️ KILLER FX</h3>", unsafe_allow_html=True)
+    st.markdown("<h3 style='color: #d4af37; font-family: Oswald; font-size: 1.5rem;'>☠️ OP CONTROL</h3>", unsafe_allow_html=True)
     
     saved_cap = load_capital()
     acc_balance = st.number_input("CAPITAL (USD):", min_value=10.0, value=float(saved_cap), step=100.0, key="input_modal", on_change=save_capital)
     risk_pct = st.slider("RISK PER TRADE (%):", min_value=0.5, max_value=5.0, value=1.0, step=0.5)
     st.markdown("---")
     
+    # ==== FITUR BARU: MANUAL FF OVERRIDE ====
+    with st.expander("🚨 FF MANUAL OVERRIDE", expanded=False):
+        st.markdown("<div style='font-size:0.75rem; color:#9ca3af; margin-bottom:10px;'>Centang ini jika FF sudah rilis tapi data di aplikasi belum update. Masukkan skor manual (-20, 0, atau +20) lalu klik Scan.</div>", unsafe_allow_html=True)
+        use_manual_ff = st.checkbox("AKTIFKAN MANUAL", value=False)
+        col_m1, col_m2 = st.columns(2)
+        with col_m1:
+            man_usd = st.number_input("USD Live", value=0, step=20)
+            man_eur = st.number_input("EUR Live", value=0, step=20)
+            man_gbp = st.number_input("GBP Live", value=0, step=20)
+            man_jpy = st.number_input("JPY Live", value=0, step=20)
+        with col_m2:
+            man_aud = st.number_input("AUD Live", value=0, step=20)
+            man_cad = st.number_input("CAD Live", value=0, step=20)
+            man_chf = st.number_input("CHF Live", value=0, step=20)
+            man_nzd = st.number_input("NZD Live", value=0, step=20)
+            
+    manual_impact_dict = {
+        "USD": man_usd, "EUR": man_eur, "GBP": man_gbp, "JPY": man_jpy,
+        "AUD": man_aud, "CAD": man_cad, "CHF": man_chf, "NZD": man_nzd
+    }
+    # ========================================
+
     st.markdown('<div class="btn-scan">', unsafe_allow_html=True)
     if st.button("🔥 IGNITE SCAN"):
         with st.spinner("SCANNING THE MARKET..."):
-            st.session_state.cal_impact_dict = fetch_live_calendar()
+            cal_dict, api_status = fetch_live_calendar()
+            st.session_state.cal_impact_dict = cal_dict
+            st.session_state.api_status = api_status
             st.session_state.op_data = [x for x in [fetch_op_forex(t) for t in roster_forex] if x is not None]
             st.session_state.last_run = datetime.now(pytz.timezone('Asia/Jakarta')).strftime("%H:%M:%S WIB")
             st.session_state.new_scan = True 
         st.rerun()
     st.markdown('</div>', unsafe_allow_html=True)
-
-    with st.expander("📖 ACADEMY GUIDE", expanded=False):
-        st.markdown("<div style='color:#d1d5db; font-size:0.8rem;'>Panduan <b>Titaniun Alert</b> & <b>S/R Level</b> aktif. Jurnal dipindah ke bagian bawah layar utama.</div>", unsafe_allow_html=True)
 
     st.markdown('<div class="btn-logout">', unsafe_allow_html=True)
     if st.button("⏻ LOG OUT"):
@@ -260,13 +285,11 @@ with st.sidebar:
 # ==========================================
 # 5. MAIN DASHBOARD AREA & SESSIONS
 # ==========================================
-st.markdown("<p class='title-op'>JIHAN-GHINA FX <span style='color: #ffffff; font-size: 1.1rem; font-weight: 300;'>v11.8 <span style='color:#d4af37; font-size:0.8rem;'>ULTIMATE</span></span></p>", unsafe_allow_html=True)
+st.markdown("<p class='title-op'>JIHAN-GHINA FX <span style='color: #ffffff; font-size: 1.1rem; font-weight: 300;'>v11.9 <span style='color:#d4af37; font-size:0.8rem;'>BYPASS EDITION</span></span></p>", unsafe_allow_html=True)
 
-# --- FITUR BARU: REAL-TIME MARKET SESSION ---
 now_wib = datetime.now(pytz.timezone('Asia/Jakarta'))
 jam = now_wib.hour
 
-# Logika Jam Sesi (Waktu Indonesia Barat)
 sesi_sydney = 4 <= jam < 13
 sesi_tokyo = 7 <= jam < 16
 sesi_london = 14 <= jam < 23
@@ -289,19 +312,28 @@ sesi_html = f"""
 </div>
 """
 st.markdown(sesi_html, unsafe_allow_html=True)
-# ---------------------------------------------
 
 if not st.session_state.op_data:
     st.markdown("<div style='background: rgba(212, 175, 55, 0.05); border: 1px dashed rgba(212, 175, 55, 0.4); padding: 30px; text-align: center; border-radius: 12px; margin-top: 20px;'><h3 style='color: #d4af37; font-family: Oswald;'>SYSTEM STANDBY</h3></div>", unsafe_allow_html=True)
 else:
-    st.markdown(f"<p style='color:#9ca3af; font-size: 0.8rem; margin-top:0; margin-bottom:10px;'>⚡ Timestamp: <span style='color:#d4af37; font-weight:bold;'>{st.session_state.get('last_run', '')}</span></p>", unsafe_allow_html=True)
+    # STATUS API DISPLAY
+    status_api = st.session_state.get('api_status', 'STANDBY')
+    api_color = "#00ff88" if status_api == "OK" else "#ff3366"
+    api_text = f" | API SERVER: <span style='color:{api_color};'>{status_api}</span>" if not use_manual_ff else f" | <span style='color:#00bfff; font-weight:bold;'>🛠️ OVERRIDE MANUAL AKTIF</span>"
+    
+    st.markdown(f"<p style='color:#9ca3af; font-size: 0.8rem; margin-top:0; margin-bottom:10px;'>⚡ Timestamp: <span style='color:#d4af37; font-weight:bold;'>{st.session_state.get('last_run', '')}</span>{api_text}</p>", unsafe_allow_html=True)
     
     cal_mod = st.session_state.get("cal_impact_dict", {})
     macro_html = '<div class="macro-container">'
     final_macro_db = {}
     
     for curr, base_data in DB_MACRO_BASE.items():
-        base_score, live_impact = base_data["Skor_Base"], cal_mod.get(curr, 0)
+        base_score = base_data["Skor_Base"]
+        
+        # LOGIKA OVERRIDE MANUAL
+        if use_manual_ff: live_impact = manual_impact_dict.get(curr, 0)
+        else: live_impact = cal_mod.get(curr, 0)
+            
         total_score = base_score + live_impact
         final_macro_db[curr] = total_score
         c_color = "#00ff88" if total_score > 15 else ("#ff3366" if total_score < -15 else "#d4af37")
@@ -338,7 +370,6 @@ else:
             "SCORE": f"{total_score:+d}", "SIGNAL": rek, "RAW_TOTAL": total_score
         })
 
-    # TRIGGER NOTIFIKASI SUARA & PERMANEN BANNER
     if st.session_state.new_scan:
         if titanium_found:
             st.toast(f"🚨 TITANIUM DETECTED: {', '.join(titanium_found)}", icon='🔥')
@@ -404,7 +435,6 @@ else:
                 sl, tp1, tp2, color = entry_area + sl_dist, entry_area - (sl_dist * 1.0), entry_area - (sl_dist * 2.5), "#ff3366"
             else: sl, tp1, tp2, lot, color, entry_area = live_harga, live_harga, live_harga, 0.00, "#9ca3af", live_harga
 
-            # RENDER KARTU EKSEKUSI
             st.markdown(f"""
             <div class="directive-card neon-float">
                 <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 5px;">
@@ -467,7 +497,7 @@ else:
                     st.plotly_chart(fig, use_container_width=True, config={'displayModeBar': False, 'scrollZoom': False, 'showAxisDragHandles': False})
 
     # ==========================================
-    # 7. AREA JURNAL (PINDAH KE BAWAH)
+    # 7. AREA JURNAL
     # ==========================================
     st.markdown("---")
     st.markdown("<h3 style='font-family: Oswald; color: #d4af37; margin-bottom:10px;'>📜 BLACK BOX JOURNAL</h3>", unsafe_allow_html=True)
@@ -477,7 +507,13 @@ else:
         st.markdown(f"<p style='color:#00ff88; font-size:0.9rem;'>Total Pertempuran Direkam: {len(df_journal)} Setup</p>", unsafe_allow_html=True)
         st.dataframe(df_journal.tail(10), hide_index=True, use_container_width=True)
         
-        with open(JOURNAL_FILE, "rb") as file:
-            st.download_button(label="📥 DOWNLOAD CSV JOURNAL", data=file, file_name="jgfx_journal.csv", mime="text/csv", use_container_width=True)
+        col_btn1, col_btn2 = st.columns(2)
+        with col_btn1:
+            with open(JOURNAL_FILE, "rb") as file:
+                st.download_button(label="📥 DOWNLOAD CSV", data=file, file_name="jgfx_journal.csv", mime="text/csv", use_container_width=True)
+        with col_btn2:
+            if st.button("🗑️ CLEAR JOURNAL", use_container_width=True):
+                os.remove(JOURNAL_FILE)
+                st.rerun()
     else:
         st.info("Jurnal masih kosong. Silakan klik 'SAVE ENTRY TO JOURNAL' pada kartu eksekusi untuk mulai merekam data.")

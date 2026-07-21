@@ -16,7 +16,7 @@ warnings.filterwarnings('ignore')
 # ==========================================
 # 1. KONFIGURASI UI STYLE & LUXURY CSS
 # ==========================================
-st.set_page_config(page_title="JIHAN-GHINA FX v11.9", page_icon="💎", layout="wide")
+st.set_page_config(page_title="JIHAN-GHINA FX", page_icon="💎", layout="wide")
 
 st.markdown("""
 <style>
@@ -141,17 +141,13 @@ DB_MACRO_BASE = {
 }
 
 def parse_number(val):
-    if not val or str(val).strip() == "": return None
-    # Bersihkan semua jenis karakter koma dan aneka unicode minus
-    s = str(val).upper().replace(",", ".").replace("−", "-").replace("–", "-").strip()
-    
+    if val is None or str(val).strip() == "": return None
+    s = str(val).upper().replace(",", ".").replace("−", "-").replace("–", "-").replace("%", "").strip()
     mult = 1
     if 'K' in s: mult = 1e3
     elif 'M' in s: mult = 1e6
     elif 'B' in s: mult = 1e9
-    elif 'T' in s: mult = 1e12
     
-    # Ekstraksi hanya angka, titik, dan minus
     s_clean = ''.join(c for c in s if c.isdigit() or c in ['.', '-'])
     try:
         if s_clean in ["", "-", "."]: return None
@@ -163,54 +159,58 @@ def fetch_live_calendar():
     impact = {k: 0 for k in DB_MACRO_BASE.keys()}
     api_status = "OK"
     
-    url_primary = "https://nfs.faireconomy.media/ff_calendar_thisweek.json"
-    url_backup = "https://nfs.gweb.io/analytics/calendar/this-week"
+    urls = [
+        "https://nfs.faireconomy.media/ff_calendar_thisweek.json",
+        "https://nfs.gweb.io/analytics/calendar/this-week"
+    ]
     
     data = None
-    try:
-        resp = requests.get(url_primary, headers={"User-Agent": "Mozilla/5.0"}, timeout=10)
-        if resp.status_code == 200: data = resp.json()
-    except: pass
+    for url in urls:
+        try:
+            resp = requests.get(url, headers={"User-Agent": "Mozilla/5.0"}, timeout=8)
+            if resp.status_code == 200:
+                data = resp.json()
+                if data: break
+        except: continue
         
     if not data:
-        try:
-            resp = requests.get(url_backup, headers={"User-Agent": "Mozilla/5.0"}, timeout=10)
-            if resp.status_code == 200: data = resp.json()
-        except Exception as e:
-            api_status = "API TIMEOUT/OFFLINE"
-            return impact, api_status
+        return impact, "API TIMEOUT"
 
-    if data:
-        for ev in data:
-            curr = ev.get("country", ev.get("currency", "")).upper()
-            imp = str(ev.get("impact", ev.get("importance", ""))).upper()
-            title = str(ev.get("title", "")).lower()
-            
-            if curr in impact and ("HIGH" in imp or "3" in imp):
-                act_raw = ev.get("actual", "")
-                fore_raw = ev.get("forecast", "")
-                prev_raw = ev.get("previous", "")
-                
-                a = parse_number(act_raw)
-                f = parse_number(fore_raw)
-                
-                # Jaring Pengaman: Jika tidak ada forecast, gunakan Previous sebagai pembanding
-                if f is None: 
-                    f = parse_number(prev_raw)
-                
-                if a is not None and f is not None:
-                    # Cek logika terbalik (semakin tinggi semakin buruk)
-                    is_inverse = any(kw in title for kw in ["unemployment", "jobless", "claims", "trade balance", "deficit", "inventory"])
-                    
-                    if not is_inverse:
-                        if a > f: impact[curr] += 20
-                        elif a < f: impact[curr] -= 20
-                    else:
-                        if a < f: impact[curr] += 20
-                        elif a > f: impact[curr] -= 20
-    else:
-        api_status = "NO DATA FETCHED"
+    for ev in data:
+        # Cek menyeluruh di semua key yang mungkin menyimpan identitas mata uang
+        curr = str(ev.get("country", ev.get("currency", ev.get("symbol", "")))).upper()
         
+        # Fallback pencarian di dalam string judul jika country/currency kosong
+        if not curr or len(curr) > 5:
+            for k in impact.keys():
+                if k in str(ev).upper():
+                    curr = k
+                    break
+                    
+        if curr in impact:
+            imp = str(ev.get("impact", ev.get("importance", ""))).upper()
+            title = str(ev.get("title", ev.get("name", ""))).lower()
+            
+            # Paksa ambil semua berita high impact atau yang memiliki nilai actual
+            act_raw = ev.get("actual", "")
+            fore_raw = ev.get("forecast", "")
+            prev_raw = ev.get("previous", "")
+            
+            a = parse_number(act_raw)
+            f = parse_number(fore_raw)
+            if f is None: 
+                f = parse_number(prev_raw)
+            
+            if a is not None and f is not None:
+                is_inverse = any(kw in title for kw in ["unemployment", "jobless", "claims", "trade balance", "deficit", "inventory"])
+                
+                if not is_inverse:
+                    if a > f: impact[curr] += 20
+                    elif a < f: impact[curr] -= 20
+                else:
+                    if a < f: impact[curr] += 20
+                    elif a > f: impact[curr] -= 20
+                    
     return impact, api_status
 
 roster_forex = ["EURUSD=X", "GBPUSD=X", "USDJPY=X", "AUDUSD=X", "USDCAD=X", "USDCHF=X", "XAUUSD=X"]
@@ -286,7 +286,7 @@ with st.sidebar:
     st.markdown("---")
     
     with st.expander("🚨 FF MANUAL OVERRIDE", expanded=False):
-        st.markdown("<div style='font-size:0.75rem; color:#9ca3af; margin-bottom:10px;'>Centang ini jika FF sudah rilis tapi data di aplikasi belum update. Masukkan skor manual (-20, 0, atau +20) lalu klik Scan.</div>", unsafe_allow_html=True)
+        st.markdown("<div style='font-size:0.75rem; color:#9ca3af; margin-bottom:10px;'>Gunakan override ini jika ingin menyuntik nilai manual secara instan.</div>", unsafe_allow_html=True)
         use_manual_ff = st.checkbox("AKTIFKAN MANUAL", value=False)
         col_m1, col_m2 = st.columns(2)
         with col_m1:
@@ -327,7 +327,7 @@ with st.sidebar:
 # ==========================================
 # 5. MAIN DASHBOARD AREA & SESSIONS
 # ==========================================
-st.markdown("<p class='title-op'>JIHAN-GHINA FX <span style='color: #ffffff; font-size: 1.1rem; font-weight: 300;'>v11.9 <span style='color:#d4af37; font-size:0.8rem;'>REVISION 2</span></span></p>", unsafe_allow_html=True)
+st.markdown("<p class='title-op'>JIHAN-GHINA FX <span style='color: #ffffff; font-size: 1.1rem; font-weight: 300;'>v11.9 <span style='color:#d4af37; font-size:0.8rem;'>REVISION 3</span></span></p>", unsafe_allow_html=True)
 
 now_wib = datetime.now(pytz.timezone('Asia/Jakarta'))
 jam = now_wib.hour

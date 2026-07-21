@@ -143,30 +143,56 @@ DB_MACRO_BASE = {
 def fetch_live_calendar():
     impact = {k: 0 for k in DB_MACRO_BASE.keys()}
     api_status = "OK"
-    try:
-        # Timeout dinaikkan dari 3 ke 10 detik agar lebih stabil
-        resp = requests.get("https://nfs.gweb.io/analytics/calendar/this-week", headers={"User-Agent": "Mozilla/5.0"}, timeout=10)
-        if resp.status_code == 200:
-            for ev in resp.json():
-                curr = ev.get("currency", "").upper()
-                imp = str(ev.get("importance", "")).upper()
-                title = str(ev.get("title", "")).lower() 
-                
-                if curr in impact and ("HIGH" in imp or "3" in imp):
-                    act, fore = ev.get("actual"), ev.get("forecast")
-                    if act and fore:
-                        try:
-                            a = float(str(act).replace("%", "").replace("K", "").replace("M", "").strip())
-                            f = float(str(fore).replace("%", "").replace("K", "").replace("M", "").strip())
-                            is_inverse = any(kw in title for kw in ["unemployment", "jobless", "claims"])
-                            if not is_inverse: impact[curr] += 20 if a > f else (-20 if a < f else 0)
-                            else: impact[curr] += 20 if a < f else (-20 if a > f else 0)
-                        except: pass
-        else:
-            api_status = f"ERROR HTTP {resp.status_code}"
-    except Exception as e: 
-        api_status = "API TIMEOUT/OFFLINE"
     
+    # Jalur Utama API Native (Lebih Cepat & Stabil)
+    url_primary = "https://nfs.faireconomy.media/ff_calendar_thisweek.json"
+    url_backup = "https://nfs.gweb.io/analytics/calendar/this-week"
+    
+    data = None
+    try:
+        resp = requests.get(url_primary, headers={"User-Agent": "Mozilla/5.0"}, timeout=10)
+        if resp.status_code == 200: data = resp.json()
+    except: pass
+        
+    # Jika gagal, gunakan jalur cadangan
+    if not data:
+        try:
+            resp = requests.get(url_backup, headers={"User-Agent": "Mozilla/5.0"}, timeout=10)
+            if resp.status_code == 200: data = resp.json()
+        except Exception as e:
+            api_status = "API TIMEOUT/OFFLINE"
+            return impact, api_status
+
+    if data:
+        for ev in data:
+            curr = ev.get("country", ev.get("currency", "")).upper()
+            imp = str(ev.get("impact", ev.get("importance", ""))).upper()
+            title = str(ev.get("title", "")).lower()
+            act, fore = ev.get("actual", ""), ev.get("forecast", "")
+            
+            if curr in impact and ("HIGH" in imp or "3" in imp):
+                if act and fore and str(act).strip() != "" and str(fore).strip() != "":
+                    try:
+                        # Membersihkan semua karakter asing dari rilis berita
+                        a_clean = str(act).replace("%", "").replace("K", "").replace("M", "").replace("B", "").replace("T", "").replace("<", "").replace(">", "").strip()
+                        f_clean = str(fore).replace("%", "").replace("K", "").replace("M", "").replace("B", "").replace("T", "").replace("<", "").replace(">", "").strip()
+                        
+                        a = float(a_clean)
+                        f = float(f_clean)
+                        
+                        is_inverse = any(kw in title for kw in ["unemployment", "jobless", "claims", "trade balance"])
+                        
+                        if not is_inverse:
+                            if a > f: impact[curr] += 20
+                            elif a < f: impact[curr] -= 20
+                        else:
+                            if a < f: impact[curr] += 20
+                            elif a > f: impact[curr] -= 20
+                    except:
+                        pass
+    else:
+        api_status = "NO DATA FETCHED"
+        
     return impact, api_status
 
 roster_forex = ["EURUSD=X", "GBPUSD=X", "USDJPY=X", "AUDUSD=X", "USDCAD=X", "USDCHF=X", "XAUUSD=X"]
@@ -241,7 +267,6 @@ with st.sidebar:
     risk_pct = st.slider("RISK PER TRADE (%):", min_value=0.5, max_value=5.0, value=1.0, step=0.5)
     st.markdown("---")
     
-    # ==== FITUR BARU: MANUAL FF OVERRIDE ====
     with st.expander("🚨 FF MANUAL OVERRIDE", expanded=False):
         st.markdown("<div style='font-size:0.75rem; color:#9ca3af; margin-bottom:10px;'>Centang ini jika FF sudah rilis tapi data di aplikasi belum update. Masukkan skor manual (-20, 0, atau +20) lalu klik Scan.</div>", unsafe_allow_html=True)
         use_manual_ff = st.checkbox("AKTIFKAN MANUAL", value=False)
@@ -261,7 +286,6 @@ with st.sidebar:
         "USD": man_usd, "EUR": man_eur, "GBP": man_gbp, "JPY": man_jpy,
         "AUD": man_aud, "CAD": man_cad, "CHF": man_chf, "NZD": man_nzd
     }
-    # ========================================
 
     st.markdown('<div class="btn-scan">', unsafe_allow_html=True)
     if st.button("🔥 IGNITE SCAN"):
@@ -316,7 +340,6 @@ st.markdown(sesi_html, unsafe_allow_html=True)
 if not st.session_state.op_data:
     st.markdown("<div style='background: rgba(212, 175, 55, 0.05); border: 1px dashed rgba(212, 175, 55, 0.4); padding: 30px; text-align: center; border-radius: 12px; margin-top: 20px;'><h3 style='color: #d4af37; font-family: Oswald;'>SYSTEM STANDBY</h3></div>", unsafe_allow_html=True)
 else:
-    # STATUS API DISPLAY
     status_api = st.session_state.get('api_status', 'STANDBY')
     api_color = "#00ff88" if status_api == "OK" else "#ff3366"
     api_text = f" | API SERVER: <span style='color:{api_color};'>{status_api}</span>" if not use_manual_ff else f" | <span style='color:#00bfff; font-weight:bold;'>🛠️ OVERRIDE MANUAL AKTIF</span>"
@@ -330,7 +353,6 @@ else:
     for curr, base_data in DB_MACRO_BASE.items():
         base_score = base_data["Skor_Base"]
         
-        # LOGIKA OVERRIDE MANUAL
         if use_manual_ff: live_impact = manual_impact_dict.get(curr, 0)
         else: live_impact = cal_mod.get(curr, 0)
             

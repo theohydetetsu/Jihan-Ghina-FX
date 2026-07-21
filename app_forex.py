@@ -140,11 +140,29 @@ DB_MACRO_BASE = {
     "CHF": {"Skor_Base": -15}, "NZD": {"Skor_Base": 0}
 }
 
+def parse_number(val):
+    if not val or str(val).strip() == "": return None
+    # Bersihkan semua jenis karakter koma dan aneka unicode minus
+    s = str(val).upper().replace(",", ".").replace("−", "-").replace("–", "-").strip()
+    
+    mult = 1
+    if 'K' in s: mult = 1e3
+    elif 'M' in s: mult = 1e6
+    elif 'B' in s: mult = 1e9
+    elif 'T' in s: mult = 1e12
+    
+    # Ekstraksi hanya angka, titik, dan minus
+    s_clean = ''.join(c for c in s if c.isdigit() or c in ['.', '-'])
+    try:
+        if s_clean in ["", "-", "."]: return None
+        return float(s_clean) * mult
+    except: 
+        return None
+
 def fetch_live_calendar():
     impact = {k: 0 for k in DB_MACRO_BASE.keys()}
     api_status = "OK"
     
-    # Jalur Utama API Native (Lebih Cepat & Stabil)
     url_primary = "https://nfs.faireconomy.media/ff_calendar_thisweek.json"
     url_backup = "https://nfs.gweb.io/analytics/calendar/this-week"
     
@@ -154,7 +172,6 @@ def fetch_live_calendar():
         if resp.status_code == 200: data = resp.json()
     except: pass
         
-    # Jika gagal, gunakan jalur cadangan
     if not data:
         try:
             resp = requests.get(url_backup, headers={"User-Agent": "Mozilla/5.0"}, timeout=10)
@@ -168,28 +185,29 @@ def fetch_live_calendar():
             curr = ev.get("country", ev.get("currency", "")).upper()
             imp = str(ev.get("impact", ev.get("importance", ""))).upper()
             title = str(ev.get("title", "")).lower()
-            act, fore = ev.get("actual", ""), ev.get("forecast", "")
             
             if curr in impact and ("HIGH" in imp or "3" in imp):
-                if act and fore and str(act).strip() != "" and str(fore).strip() != "":
-                    try:
-                        # Membersihkan semua karakter asing dari rilis berita
-                        a_clean = str(act).replace("%", "").replace("K", "").replace("M", "").replace("B", "").replace("T", "").replace("<", "").replace(">", "").strip()
-                        f_clean = str(fore).replace("%", "").replace("K", "").replace("M", "").replace("B", "").replace("T", "").replace("<", "").replace(">", "").strip()
-                        
-                        a = float(a_clean)
-                        f = float(f_clean)
-                        
-                        is_inverse = any(kw in title for kw in ["unemployment", "jobless", "claims", "trade balance"])
-                        
-                        if not is_inverse:
-                            if a > f: impact[curr] += 20
-                            elif a < f: impact[curr] -= 20
-                        else:
-                            if a < f: impact[curr] += 20
-                            elif a > f: impact[curr] -= 20
-                    except:
-                        pass
+                act_raw = ev.get("actual", "")
+                fore_raw = ev.get("forecast", "")
+                prev_raw = ev.get("previous", "")
+                
+                a = parse_number(act_raw)
+                f = parse_number(fore_raw)
+                
+                # Jaring Pengaman: Jika tidak ada forecast, gunakan Previous sebagai pembanding
+                if f is None: 
+                    f = parse_number(prev_raw)
+                
+                if a is not None and f is not None:
+                    # Cek logika terbalik (semakin tinggi semakin buruk)
+                    is_inverse = any(kw in title for kw in ["unemployment", "jobless", "claims", "trade balance", "deficit", "inventory"])
+                    
+                    if not is_inverse:
+                        if a > f: impact[curr] += 20
+                        elif a < f: impact[curr] -= 20
+                    else:
+                        if a < f: impact[curr] += 20
+                        elif a > f: impact[curr] -= 20
     else:
         api_status = "NO DATA FETCHED"
         
@@ -309,7 +327,7 @@ with st.sidebar:
 # ==========================================
 # 5. MAIN DASHBOARD AREA & SESSIONS
 # ==========================================
-st.markdown("<p class='title-op'>JIHAN-GHINA FX <span style='color: #ffffff; font-size: 1.1rem; font-weight: 300;'>v11.9 <span style='color:#d4af37; font-size:0.8rem;'>BYPASS EDITION</span></span></p>", unsafe_allow_html=True)
+st.markdown("<p class='title-op'>JIHAN-GHINA FX <span style='color: #ffffff; font-size: 1.1rem; font-weight: 300;'>v11.9 <span style='color:#d4af37; font-size:0.8rem;'>REVISION 2</span></span></p>", unsafe_allow_html=True)
 
 now_wib = datetime.now(pytz.timezone('Asia/Jakarta'))
 jam = now_wib.hour

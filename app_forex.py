@@ -16,7 +16,7 @@ warnings.filterwarnings('ignore')
 # ==========================================
 # 1. KONFIGURASI UI STYLE & LUXURY CSS
 # ==========================================
-st.set_page_config(page_title="JIHAN-GHINA FX", page_icon="💎", layout="wide")
+st.set_page_config(page_title="JIHAN-GHINA FX v12.0", page_icon="💎", layout="wide")
 
 st.markdown("""
 <style>
@@ -24,7 +24,7 @@ st.markdown("""
     html, body, [class*="css"] { font-family: 'Plus Jakarta Sans', sans-serif; }
     
     [data-testid="stAppViewContainer"] { 
-        background: radial-gradient(circle at 50% 0%, #1a1616, #050505) !important; 
+        background: radial-gradient(circle at 50% 0%, #151111, #020202) !important; 
         color: #f3f4f6 !important; 
     }
     
@@ -78,39 +78,18 @@ st.markdown("""
         padding: 20px;
         margin-bottom: 5px;
     }
-    
-    .btn-scan > button { 
-        background: linear-gradient(90deg, #d4af37 0%, #ff9900 100%) !important; 
-        border: none !important; 
-        color: #000000 !important; 
-        border-radius: 8px !important; 
-        font-weight: 800 !important;
-        font-family: 'Oswald', sans-serif;
-        letter-spacing: 1px;
-        font-size: 1.1rem !important;
-        padding: 10px 0 !important;
-        width: 100% !important;
-    }
-    .btn-logout > button {
-        background: transparent !important;
-        border: 1px solid rgba(255, 51, 102, 0.4) !important;
-        color: #ff3366 !important;
-        border-radius: 8px !important;
-        width: 100% !important;
-        margin-top: 10px !important;
-    }
 </style>
 """, unsafe_allow_html=True)
 
-if st.session_state.get('logged_out', False):
-    st.markdown("<div style='text-align: center; margin-top: 15vh;'><h1 style='color: #d4af37; font-family: Oswald;'>SYSTEM DISCONNECTED</h1></div>", unsafe_allow_html=True)
-    st.stop()
-
 # ==========================================
-# 2. MEMORY & JOURNALING SYSTEM
+# 2. MEMORY & VISUAL JOURNALING SYSTEM
 # ==========================================
 CONFIG_FILE = "config_jgfx.json"
 JOURNAL_FILE = "jgfx_journal.csv"
+JOURNAL_DIR = "Visual_Journals"
+
+if not os.path.exists(JOURNAL_DIR):
+    os.makedirs(JOURNAL_DIR)
 
 def load_capital():
     if os.path.exists(CONFIG_FILE):
@@ -122,17 +101,27 @@ def load_capital():
 def save_capital():
     with open(CONFIG_FILE, "w") as f: json.dump({"capital": st.session_state.input_modal}, f)
 
-def log_to_journal(asset, signal, lot, entry, sl, tp):
+def log_to_journal(asset, signal, lot, entry, sl, tp, fig=None):
     file_exists = os.path.isfile(JOURNAL_FILE)
+    timestamp_obj = datetime.now(pytz.timezone('Asia/Jakarta'))
+    timestamp = timestamp_obj.strftime("%Y-%m-%d %H:%M:%S")
+    file_time = timestamp_obj.strftime("%Y%m%d_%H%M%S")
+    
+    # Text Log
     with open(JOURNAL_FILE, mode='a', newline='') as file:
         writer = csv.writer(file)
         if not file_exists:
-            writer.writerow(["TIMESTAMP", "ASSET", "SIGNAL", "LOT", "ENTRY", "SL", "TARGET"])
-        timestamp = datetime.now(pytz.timezone('Asia/Jakarta')).strftime("%Y-%m-%d %H:%M:%S")
-        writer.writerow([timestamp, asset, signal, lot, entry, sl, tp])
+            writer.writerow(["TIMESTAMP", "ASSET", "SIGNAL", "LOT", "ENTRY", "SL", "TARGET", "VISUAL_LOG"])
+        visual_name = f"Log_{asset.replace('/','')}_{file_time}.html" if fig else "N/A"
+        writer.writerow([timestamp, asset, signal, lot, entry, sl, tp, visual_name])
+    
+    # Auto-Capture Chart HTML (Pilar 3)
+    if fig:
+        file_path = os.path.join(JOURNAL_DIR, f"Log_{asset.replace('/','')}_{file_time}.html")
+        fig.write_html(file_path)
 
 # ==========================================
-# 3. DATA MACRO & TECH SCANNER ENGINE
+# 3. DYNAMIC MACRO & TECH SCANNER ENGINE
 # ==========================================
 DB_MACRO_BASE = {
     "USD": {"Skor_Base": 35}, "EUR": {"Skor_Base": 10}, "GBP": {"Skor_Base": 20},
@@ -140,77 +129,62 @@ DB_MACRO_BASE = {
     "CHF": {"Skor_Base": -15}, "NZD": {"Skor_Base": 0}
 }
 
+# Pilar 1: Auto-Tuning Base Score USD menggunakan US 10Y Treasury
+def get_dynamic_base_score():
+    base = DB_MACRO_BASE.copy()
+    try:
+        tnx = yf.Ticker("^TNX").history(period="1d")['Close'].iloc[-1]
+        if tnx >= 4.3: base["USD"]["Skor_Base"] += 15
+        elif tnx >= 4.0: base["USD"]["Skor_Base"] += 5
+        elif tnx <= 3.6: base["USD"]["Skor_Base"] -= 10
+    except: pass
+    return base
+
 def parse_number(val):
-    if val is None or str(val).strip() == "": return None
-    s = str(val).upper().replace(",", ".").replace("−", "-").replace("–", "-").replace("%", "").strip()
+    if not val or str(val).strip() == "": return None
+    s = str(val).upper().replace(",", ".").replace("−", "-").replace("–", "-").strip()
     mult = 1
     if 'K' in s: mult = 1e3
     elif 'M' in s: mult = 1e6
     elif 'B' in s: mult = 1e9
-    
+    elif 'T' in s: mult = 1e12
     s_clean = ''.join(c for c in s if c.isdigit() or c in ['.', '-'])
     try:
         if s_clean in ["", "-", "."]: return None
         return float(s_clean) * mult
-    except: 
-        return None
+    except: return None
 
-def fetch_live_calendar():
-    impact = {k: 0 for k in DB_MACRO_BASE.keys()}
+def fetch_live_calendar(dynamic_bases):
+    impact = {k: 0 for k in dynamic_bases.keys()}
     api_status = "OK"
-    
-    urls = [
-        "https://nfs.faireconomy.media/ff_calendar_thisweek.json",
-        "https://nfs.gweb.io/analytics/calendar/this-week"
-    ]
+    timestamp_now = int(datetime.now().timestamp())
+    url_primary = f"https://nfs.faireconomy.media/ff_calendar_thisweek.json?_={timestamp_now}"
     
     data = None
-    for url in urls:
-        try:
-            resp = requests.get(url, headers={"User-Agent": "Mozilla/5.0"}, timeout=8)
-            if resp.status_code == 200:
-                data = resp.json()
-                if data: break
-        except: continue
-        
-    if not data:
-        return impact, "API TIMEOUT"
+    try:
+        resp = requests.get(url_primary, headers={"User-Agent": "Mozilla/5.0"}, timeout=10)
+        if resp.status_code == 200: data = resp.json()
+    except: api_status = "API TIMEOUT/OFFLINE"
 
-    for ev in data:
-        # Cek menyeluruh di semua key yang mungkin menyimpan identitas mata uang
-        curr = str(ev.get("country", ev.get("currency", ev.get("symbol", "")))).upper()
-        
-        # Fallback pencarian di dalam string judul jika country/currency kosong
-        if not curr or len(curr) > 5:
-            for k in impact.keys():
-                if k in str(ev).upper():
-                    curr = k
-                    break
-                    
-        if curr in impact:
+    if data:
+        for raw_ev in data:
+            ev = {str(k).lower(): v for k, v in raw_ev.items()}
+            curr = str(ev.get("country", ev.get("currency", ""))).upper()
             imp = str(ev.get("impact", ev.get("importance", ""))).upper()
-            title = str(ev.get("title", ev.get("name", ""))).lower()
+            title = str(ev.get("title", "")).lower()
             
-            # Paksa ambil semua berita high impact atau yang memiliki nilai actual
-            act_raw = ev.get("actual", "")
-            fore_raw = ev.get("forecast", "")
-            prev_raw = ev.get("previous", "")
-            
-            a = parse_number(act_raw)
-            f = parse_number(fore_raw)
-            if f is None: 
-                f = parse_number(prev_raw)
-            
-            if a is not None and f is not None:
-                is_inverse = any(kw in title for kw in ["unemployment", "jobless", "claims", "trade balance", "deficit", "inventory"])
+            if curr in impact and ("HIGH" in imp or "3" in imp):
+                a, f = parse_number(ev.get("actual", "")), parse_number(ev.get("forecast", ""))
+                if f is None: f = parse_number(ev.get("previous", ""))
                 
-                if not is_inverse:
-                    if a > f: impact[curr] += 20
-                    elif a < f: impact[curr] -= 20
-                else:
-                    if a < f: impact[curr] += 20
-                    elif a > f: impact[curr] -= 20
-                    
+                if a is not None and f is not None:
+                    is_inverse = any(kw in title for kw in ["unemployment", "jobless", "claims", "trade balance", "deficit", "inventory"])
+                    if not is_inverse:
+                        impact[curr] += 20 if a > f else (-20 if a < f else 0)
+                    else:
+                        impact[curr] += 20 if a < f else (-20 if a > f else 0)
+    else: api_status = "NO DATA FETCHED"
+        
     return impact, api_status
 
 roster_forex = ["EURUSD=X", "GBPUSD=X", "USDJPY=X", "AUDUSD=X", "USDCAD=X", "USDCHF=X", "XAUUSD=X"]
@@ -220,12 +194,17 @@ def fetch_op_forex(ticker):
     try:
         tk = yf.Ticker(ticker)
         df_h1 = tk.history(period="1mo", interval="1h").ffill()
-        if df_h1.empty: return None
+        df_m5 = tk.history(period="1d", interval="5m").ffill() # Data M5 untuk Anti-Whiplash
+        if df_h1.empty or df_m5.empty: return None
         
         df_h4 = df_h1.resample('4h').agg({'Open':'first', 'High':'max', 'Low':'min', 'Close':'last'}).dropna()
         df_d1 = df_h1.resample('1d').agg({'Open':'first', 'High':'max', 'Low':'min', 'Close':'last'}).dropna()
 
-        support, resistance = float(df_d1['Low'].iloc[-5:].min()), float(df_d1['High'].iloc[-5:].max())
+        # Pilar 4: 3D Pivot & Support Resistance Mapping
+        prev_h, prev_l, prev_c = float(df_d1['High'].iloc[-2]), float(df_d1['Low'].iloc[-2]), float(df_d1['Close'].iloc[-2])
+        pivot = (prev_h + prev_l + prev_c) / 3
+        r1, s1 = (2 * pivot) - prev_l, (2 * pivot) - prev_h
+        r2, s2 = pivot + (prev_h - prev_l), pivot - (prev_h - prev_l)
 
         df_h1['EMA20'] = df_h1['Close'].ewm(span=20, adjust=False).mean()
         df_h1['EMA50'] = df_h1['Close'].ewm(span=50, adjust=False).mean()
@@ -240,6 +219,11 @@ def fetch_op_forex(ticker):
         tr = np.max([df_h1['High']-df_h1['Low'], np.abs(df_h1['High']-df_h1['Close'].shift()), np.abs(df_h1['Low']-df_h1['Close'].shift())], axis=0)
         df_h1['ATR'] = pd.Series(tr, index=df_h1.index).rolling(14).mean()
         
+        # Pilar 2: Anti-Whiplash M5 Checker
+        m5_spread = float(df_m5['High'].iloc[-1] - df_m5['Low'].iloc[-1])
+        current_atr = float(df_h1['ATR'].iloc[-1])
+        whiplash_safe = True if m5_spread < (1.5 * current_atr) else False
+
         df_h4['EMA20'] = df_h4['Close'].ewm(span=20, adjust=False).mean()
         df_d1['EMA20'] = df_d1['Close'].ewm(span=20, adjust=False).mean()
 
@@ -252,22 +236,18 @@ def fetch_op_forex(ticker):
         tech_score = 0
         if h1_trend == h4_trend == d1_trend == "UP": tech_score += 30
         elif h1_trend == h4_trend == d1_trend == "DOWN": tech_score -= 30
-            
         if last['EMA20'] > last['EMA50']: tech_score += 15
         elif last['EMA20'] < last['EMA50']: tech_score -= 15
-            
         if last['MACD'] > last['Signal']: tech_score += 15
         elif last['MACD'] < last['Signal']: tech_score -= 15
-            
         if 40 <= last['RSI'] <= 65 and tech_score > 0: tech_score += 10 
         elif 35 <= last['RSI'] <= 60 and tech_score < 0: tech_score -= 10 
 
         return {
             "TICKER": ticker, "NAMA": nama_pairs[ticker], "HARGA_SCAN": float(last['Close']),
-            "EMA20": float(last['EMA20']), "EMA50": float(last['EMA50']),
-            "RSI": float(last['RSI']), "MACD_SIGNAL": "BULL" if last['MACD'] > last['Signal'] else "BEAR",
-            "ATR": float(last['ATR']), "MTF": f"{d1_trend} | {h4_trend} | {h1_trend}",
-            "TECH_SCORE": tech_score, "SUPPORT": support, "RESISTANCE": resistance
+            "EMA20": float(last['EMA20']), "ATR": float(last['ATR']), "RSI": float(last['RSI']),
+            "MTF": f"{d1_trend} | {h4_trend} | {h1_trend}", "TECH_SCORE": tech_score,
+            "PIVOT": pivot, "R1": r1, "R2": r2, "S1": s1, "S2": s2, "WHIPLASH_SAFE": whiplash_safe
         }
     except: return None
 
@@ -278,15 +258,13 @@ if "op_data" not in st.session_state: st.session_state.op_data = []
 if "new_scan" not in st.session_state: st.session_state.new_scan = False
 
 with st.sidebar:
-    st.markdown("<h3 style='color: #d4af37; font-family: Oswald; font-size: 1.5rem;'>☠️ OP CONTROL</h3>", unsafe_allow_html=True)
-    
+    st.markdown("<h3 style='color: #d4af37; font-family: Oswald;'>☠️ COMMAND CENTER</h3>", unsafe_allow_html=True)
     saved_cap = load_capital()
     acc_balance = st.number_input("CAPITAL (USD):", min_value=10.0, value=float(saved_cap), step=100.0, key="input_modal", on_change=save_capital)
     risk_pct = st.slider("RISK PER TRADE (%):", min_value=0.5, max_value=5.0, value=1.0, step=0.5)
     st.markdown("---")
     
-    with st.expander("🚨 FF MANUAL OVERRIDE", expanded=False):
-        st.markdown("<div style='font-size:0.75rem; color:#9ca3af; margin-bottom:10px;'>Gunakan override ini jika ingin menyuntik nilai manual secara instan.</div>", unsafe_allow_html=True)
+    with st.expander("🚨 FF LIVE OVERRIDE", expanded=False):
         use_manual_ff = st.checkbox("AKTIFKAN MANUAL", value=False)
         col_m1, col_m2 = st.columns(2)
         with col_m1:
@@ -300,98 +278,53 @@ with st.sidebar:
             man_chf = st.number_input("CHF Live", value=0, step=20)
             man_nzd = st.number_input("NZD Live", value=0, step=20)
             
-    manual_impact_dict = {
-        "USD": man_usd, "EUR": man_eur, "GBP": man_gbp, "JPY": man_jpy,
-        "AUD": man_aud, "CAD": man_cad, "CHF": man_chf, "NZD": man_nzd
-    }
+    manual_impact_dict = {"USD": man_usd, "EUR": man_eur, "GBP": man_gbp, "JPY": man_jpy, "AUD": man_aud, "CAD": man_cad, "CHF": man_chf, "NZD": man_nzd}
 
-    st.markdown('<div class="btn-scan">', unsafe_allow_html=True)
-    if st.button("🔥 IGNITE SCAN"):
-        with st.spinner("SCANNING THE MARKET..."):
-            cal_dict, api_status = fetch_live_calendar()
+    if st.button("🔥 EXECUTE SCAN", use_container_width=True):
+        with st.spinner("QUANTUM SCANNING..."):
+            dynamic_bases = get_dynamic_base_score()
+            st.session_state.dynamic_bases = dynamic_bases
+            cal_dict, api_status = fetch_live_calendar(dynamic_bases)
             st.session_state.cal_impact_dict = cal_dict
             st.session_state.api_status = api_status
             st.session_state.op_data = [x for x in [fetch_op_forex(t) for t in roster_forex] if x is not None]
             st.session_state.last_run = datetime.now(pytz.timezone('Asia/Jakarta')).strftime("%H:%M:%S WIB")
             st.session_state.new_scan = True 
         st.rerun()
-    st.markdown('</div>', unsafe_allow_html=True)
-
-    st.markdown('<div class="btn-logout">', unsafe_allow_html=True)
-    if st.button("⏻ LOG OUT"):
-        st.session_state.clear()
-        st.session_state['logged_out'] = True
-        st.rerun()
-    st.markdown('</div>', unsafe_allow_html=True)
 
 # ==========================================
-# 5. MAIN DASHBOARD AREA & SESSIONS
+# 5. MAIN DASHBOARD AREA
 # ==========================================
-st.markdown("<p class='title-op'>JIHAN-GHINA FX <span style='color: #ffffff; font-size: 1.1rem; font-weight: 300;'>v11.9 <span style='color:#d4af37; font-size:0.8rem;'>REVISION 3</span></span></p>", unsafe_allow_html=True)
-
-now_wib = datetime.now(pytz.timezone('Asia/Jakarta'))
-jam = now_wib.hour
-
-sesi_sydney = 4 <= jam < 13
-sesi_tokyo = 7 <= jam < 16
-sesi_london = 14 <= jam < 23
-sesi_ny = jam >= 19 or jam < 4
-
-def render_session(name, is_open, color):
-    bg_color = color if is_open else "#1a1a1a"
-    txt_color = "#000000" if is_open else "#4b5563"
-    border = "none" if is_open else "1px solid #4b5563"
-    status = "OPEN" if is_open else "CLOSED"
-    glow = f"box-shadow: 0 0 8px {color};" if is_open else ""
-    return f'<div style="background:{bg_color}; border:{border}; padding:4px 8px; border-radius:4px; font-size:0.65rem; font-weight:bold; color:{txt_color}; {glow}">{name} ({status})</div>'
-
-sesi_html = f"""
-<div style="display: flex; gap: 8px; flex-wrap: wrap; margin-bottom: 15px; margin-top: 5px;">
-    {render_session("🇦🇺 SYDNEY", sesi_sydney, "#00bfff")}
-    {render_session("🇯🇵 TOKYO", sesi_tokyo, "#00ff88")}
-    {render_session("🇬🇧 LONDON", sesi_london, "#d4af37")}
-    {render_session("🇺🇸 NEW YORK", sesi_ny, "#ff3366")}
-</div>
-"""
-st.markdown(sesi_html, unsafe_allow_html=True)
+st.markdown("<p class='title-op'>JIHAN-GHINA FX <span style='color: #ffffff; font-size: 1.1rem; font-weight: 300;'>v12.0 <span style='color:#00bfff; font-size:0.8rem;'>TITANIUM PROTOCOL</span></span></p>", unsafe_allow_html=True)
 
 if not st.session_state.op_data:
-    st.markdown("<div style='background: rgba(212, 175, 55, 0.05); border: 1px dashed rgba(212, 175, 55, 0.4); padding: 30px; text-align: center; border-radius: 12px; margin-top: 20px;'><h3 style='color: #d4af37; font-family: Oswald;'>SYSTEM STANDBY</h3></div>", unsafe_allow_html=True)
+    st.info("System Standby. Initiate Scan to extract market intelligence.")
 else:
-    status_api = st.session_state.get('api_status', 'STANDBY')
-    api_color = "#00ff88" if status_api == "OK" else "#ff3366"
-    api_text = f" | API SERVER: <span style='color:{api_color};'>{status_api}</span>" if not use_manual_ff else f" | <span style='color:#00bfff; font-weight:bold;'>🛠️ OVERRIDE MANUAL AKTIF</span>"
-    
-    st.markdown(f"<p style='color:#9ca3af; font-size: 0.8rem; margin-top:0; margin-bottom:10px;'>⚡ Timestamp: <span style='color:#d4af37; font-weight:bold;'>{st.session_state.get('last_run', '')}</span>{api_text}</p>", unsafe_allow_html=True)
+    api_status = st.session_state.get('api_status', 'STANDBY')
+    st.markdown(f"<p style='color:#9ca3af; font-size: 0.8rem;'>⚡ Timestamp: <span style='color:#d4af37;'>{st.session_state.get('last_run', '')}</span> | API: <span style='color:#00ff88;'>{api_status}</span></p>", unsafe_allow_html=True)
     
     cal_mod = st.session_state.get("cal_impact_dict", {})
+    bases = st.session_state.get("dynamic_bases", DB_MACRO_BASE)
+    
     macro_html = '<div class="macro-container">'
     final_macro_db = {}
     
-    for curr, base_data in DB_MACRO_BASE.items():
+    for curr, base_data in bases.items():
         base_score = base_data["Skor_Base"]
-        
-        if use_manual_ff: live_impact = manual_impact_dict.get(curr, 0)
-        else: live_impact = cal_mod.get(curr, 0)
-            
+        live_impact = manual_impact_dict.get(curr, 0) if use_manual_ff else cal_mod.get(curr, 0)
         total_score = base_score + live_impact
         final_macro_db[curr] = total_score
-        c_color = "#00ff88" if total_score > 15 else ("#ff3366" if total_score < -15 else "#d4af37")
-        imp_color = "#00ff88" if live_impact > 0 else ("#ff3366" if live_impact < 0 else "#9ca3af")
         
-        macro_html += f'<div class="macro-badge neon-float"><p style="margin:0; font-size:0.75rem; color:#ffffff; font-weight:bold;">{curr}</p><div style="font-size: 0.55rem; color: #9ca3af; margin: 2px 0;">BASE: {base_score} <br/> LIVE: <span style="color:{imp_color}; font-weight:bold;">{live_impact:+d}</span></div><p style="margin:2px 0 0 0; font-size:1.1rem; font-family:Oswald; color:{c_color}; font-weight:bold;">{total_score:+d}</p></div>'
+        c_color = "#00ff88" if total_score > 15 else ("#ff3366" if total_score < -15 else "#d4af37")
+        macro_html += f'<div class="macro-badge"><p style="margin:0; font-size:0.75rem; color:#fff;">{curr}</p><p style="margin:2px 0 0 0; font-size:1.1rem; font-family:Oswald; color:{c_color};">{total_score:+d}</p></div>'
     st.markdown(macro_html + '</div>', unsafe_allow_html=True)
 
     matrix_rows = []
-    titanium_found = [] 
-
     for raw in st.session_state.op_data:
         pair = raw["NAMA"]
         if "GOLD" in pair: f_score = 30 if final_macro_db["USD"] < 0 else -30
         else:
-            try:
-                b, q = pair.split("/")
-                f_score = final_macro_db[b] - final_macro_db[q]
+            try: b, q = pair.split("/"); f_score = final_macro_db[b] - final_macro_db[q]
             except: f_score = 0
             
         total_score = raw["TECH_SCORE"] + f_score
@@ -402,158 +335,93 @@ else:
         elif total_score <= -30: rek = "🔴 STRONG SELL"
         else: rek = "⚪ NEUTRAL"
         
-        if "TITANIUM" in rek: titanium_found.append(pair)
+        warn = "⚠️" if not raw["WHIPLASH_SAFE"] else ""
 
         matrix_rows.append({
-            "ASSET": pair, "PRICE": f"{raw['HARGA_SCAN']:.4f}" if "JPY" not in pair else f"{raw['HARGA_SCAN']:.2f}",
-            "MTF": raw["MTF"], "RSI": f"{raw['RSI']:.1f}", "FUND": f"{f_score:+d}",
+            "ASSET": pair + f" {warn}", "PRICE": f"{raw['HARGA_SCAN']:.4f}" if "JPY" not in pair else f"{raw['HARGA_SCAN']:.2f}",
             "SCORE": f"{total_score:+d}", "SIGNAL": rek, "RAW_TOTAL": total_score
         })
-
-    if st.session_state.new_scan:
-        if titanium_found:
-            st.toast(f"🚨 TITANIUM DETECTED: {', '.join(titanium_found)}", icon='🔥')
-            st.success(f"🚨 **TITANIUM SIGNAL DETECTED:** Segera periksa {', '.join(titanium_found)}!", icon="🔥")
-            audio_str = """<audio autoplay="true"><source src="https://assets.mixkit.co/active_storage/sfx/2869/2869-preview.mp3" type="audio/mpeg"></audio>"""
-            st.markdown(audio_str, unsafe_allow_html=True)
-        else:
-            st.toast('Scan Selesai. Standby for opportunities.', icon='🔍')
-        st.session_state.new_scan = False
 
     def style_matrix(val):
         if isinstance(val, str):
             if "BUY" in val: return 'color: #00ff88;'
             elif "SELL" in val: return 'color: #ff3366;'
+            elif "⚠️" in val: return 'color: #ff9900; font-weight:bold;'
         return 'color: #d1d5db;'
-
     st.dataframe(pd.DataFrame(matrix_rows).drop(columns=['RAW_TOTAL']).style.map(style_matrix), use_container_width=True, hide_index=True)
 
     # ==========================================
-    # 6. TITANIUM EXECUTION & CHART
+    # 6. TACTICAL EXECUTION
     # ==========================================
     st.markdown("---")
-    st.markdown("<h3 style='font-family: Oswald; color: #d4af37; margin-bottom:5px;'>🎯 TACTICAL EXECUTION</h3>", unsafe_allow_html=True)
+    pilihan = st.selectbox("SELECT ASSET FOR EXECUTION:", [x["NAMA"] for x in st.session_state.op_data])
     
-    col_sel1, col_sel2 = st.columns(2)
-    with col_sel1: pilihan = st.selectbox("SELECT ASSET:", [x["NAMA"] for x in st.session_state.op_data], key="pair_selector")
-    with col_sel2: tf_pilihan = st.selectbox("TIME FRAME:", ["15m", "1h", "1d"], index=1, key="tf_selector")
-    
-    if st.session_state.pair_selector:
-        active_data = next((item for item in st.session_state.op_data if item["NAMA"] == st.session_state.pair_selector), None)
-        active_matrix = next((item for item in matrix_rows if item["ASSET"] == st.session_state.pair_selector), None)
+    if pilihan:
+        active_data = next((item for item in st.session_state.op_data if item["NAMA"] == pilihan), None)
+        active_matrix = next((item for item in matrix_rows if pilihan in item["ASSET"]), None)
         
         if active_data and active_matrix:
-            try:
-                tk_chart = yf.Ticker(active_data["TICKER"])
-                if tf_pilihan == "15m": df_chart = tk_chart.history(period="5d", interval="15m")
-                elif tf_pilihan == "1h": df_chart = tk_chart.history(period="1mo", interval="1h")
-                else: df_chart = tk_chart.history(period="3mo", interval="1d")
-                live_harga = float(df_chart['Close'].iloc[-1]) if not df_chart.empty else active_data["HARGA_SCAN"]
-            except:
-                df_chart, live_harga = pd.DataFrame(), active_data["HARGA_SCAN"]
+            tk_chart = yf.Ticker(active_data["TICKER"])
+            df_chart = tk_chart.history(period="5d", interval="15m")
+            live_harga = active_data["HARGA_SCAN"]
+            
+            sig = active_matrix["SIGNAL"]
+            is_buy, is_sell = "BUY" in sig, "SELL" in sig
+            
+            sl_dist = 1.2 * active_data["ATR"]
+            risk_amount = acc_balance * (risk_pct / 100)
+            pips = sl_dist * (100 if "JPY" in active_data["TICKER"] else (10 if "XAU" in active_data["TICKER"] else 10000))
+            lot = max(0.01, round((risk_amount / (pips * 10.0)) if pips > 0 else 0, 2))
+            fmt = ".3f" if "JPY" in active_data["TICKER"] or "XAU" in active_data["TICKER"] else ".5f"
 
-            atr, sig = active_data["ATR"], active_matrix["SIGNAL"]
-            sl_dist, risk_amount = 1.2 * atr, acc_balance * (risk_pct / 100)
-            
-            win_rate = min(98, 50 + abs(active_matrix["RAW_TOTAL"]))
-            if "NEUTRAL" in sig: win_rate = np.random.randint(45, 55)
-            
-            if "JPY" in active_data["TICKER"]: pips, pip_val, fmt = sl_dist * 100, 7.00, ".3f"
-            elif "XAU" in active_data["TICKER"]: pips, pip_val, fmt = sl_dist * 10, 10.0, ".3f"
-            else: pips, pip_val, fmt = sl_dist * 10000, 10.0, ".5f"
-                
-            lot = max(0.01, round((risk_amount / (pips * pip_val)) if pips > 0 else 0, 2))
-            menit_sisa = 60 - datetime.now(pytz.timezone('Asia/Jakarta')).minute
-            
-            is_buy, is_sell, is_titanium = "BUY" in sig, "SELL" in sig, "TITANIUM" in sig
-
+            # 3D Profit Scaling Logic
             if is_buy:
-                entry_area = live_harga if is_titanium else active_data['EMA20']
-                sl, tp1, tp2, color = entry_area - sl_dist, entry_area + (sl_dist * 1.0), entry_area + (sl_dist * 2.5), "#00ff88"
+                entry = live_harga
+                sl = entry - sl_dist
+                tp1 = active_data["R1"] if active_data["R1"] > entry else entry + (sl_dist * 1.5)
+                color = "#00ff88"
             elif is_sell:
-                entry_area = live_harga if is_titanium else active_data['EMA20']
-                sl, tp1, tp2, color = entry_area + sl_dist, entry_area - (sl_dist * 1.0), entry_area - (sl_dist * 2.5), "#ff3366"
-            else: sl, tp1, tp2, lot, color, entry_area = live_harga, live_harga, live_harga, 0.00, "#9ca3af", live_harga
+                entry = live_harga
+                sl = entry + sl_dist
+                tp1 = active_data["S1"] if active_data["S1"] < entry else entry - (sl_dist * 1.5)
+                color = "#ff3366"
+            else: entry, sl, tp1, lot, color = live_harga, live_harga, live_harga, 0.00, "#9ca3af"
+
+            whiplash_alert = "<p style='color:#ff9900; font-weight:bold;'>⚠️ WHIPLASH DETECTED! Pasar fluktuatif ekstrem di M5. Tunggu Pullback!</p>" if not active_data["WHIPLASH_SAFE"] else ""
 
             st.markdown(f"""
             <div class="directive-card neon-float">
-                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 5px;">
-                    <h3 style="color: {color}; font-family: Oswald; font-size: 1.8rem; margin: 0;">{sig}</h3>
-                    <span style="background: rgba(212,175,55,0.15); border: 1px solid #d4af37; padding: 4px 8px; border-radius: 6px; font-size: 0.7rem; font-weight: bold; color: #d4af37;">⚡ WIN-RATE: {win_rate}%</span>
-                </div>
-                <p style="color: #ffffff; font-size: 1rem; margin: 0 0 5px 0;">Live Price: <span style="color: #d4af37; font-weight: bold;">{format(live_harga, fmt)}</span></p>
-                <div style="display: flex; justify-content: space-between; align-items: center; margin: 0 0 15px 0;">
-                    <p style="color: rgba(255,255,255,0.5); font-size: 0.75rem; margin: 0;">⏳ EXPIRED: {menit_sisa} Min</p>
-                    <p style="color: #00bfff; font-size: 0.7rem; margin: 0;">🎯 S/R: {format(active_data['RESISTANCE'], fmt)} / {format(active_data['SUPPORT'], fmt)}</p>
-                </div>
-                <div style="display: flex; justify-content: space-between; align-items: center; background: rgba(0,0,0,0.5); padding: 12px 4px; border-radius: 8px; border: 1px solid rgba(255,255,255,0.05);">
-                    <div style="text-align: center; flex: 1;">
-                        <p style="color: #9ca3af; font-size: 0.6rem; margin: 0; font-weight: bold;">LOT</p>
-                        <p style="color: #ffffff; font-size: 1.1rem; font-family: Oswald; font-weight: 700; margin: 0;">{lot}</p>
-                    </div>
-                    <div style="text-align: center; flex: 1; border-left: 1px solid rgba(255,255,255,0.1);">
-                        <p style="color: #9ca3af; font-size: 0.6rem; margin: 0; font-weight: bold;">ENTRY</p>
-                        <p style="color: #d4af37; font-size: 1.1rem; font-family: Oswald; font-weight: 700; margin: 0;">{format(entry_area, fmt)}</p>
-                    </div>
-                    <div style="text-align: center; flex: 1; border-left: 1px solid rgba(255,255,255,0.1);">
-                        <p style="color: #9ca3af; font-size: 0.6rem; margin: 0; font-weight: bold;">SL</p>
-                        <p style="color: #ff3366; font-size: 1.1rem; font-family: Oswald; font-weight: 700; margin: 0;">{format(sl, fmt)}</p>
-                    </div>
-                    <div style="text-align: center; flex: 1; border-left: 1px solid rgba(255,255,255,0.1);">
-                        <p style="color: #9ca3af; font-size: 0.6rem; margin: 0; font-weight: bold;">TARGET</p>
-                        <p style="color: #00ff88; font-size: 1rem; font-family: Oswald; font-weight: 700; margin: 0;">{format(tp1, fmt)}</p>
-                    </div>
+                <h3 style="color: {color}; font-family: Oswald; margin: 0;">{sig}</h3>
+                {whiplash_alert}
+                <div style="display: flex; justify-content: space-between; background: rgba(0,0,0,0.5); padding: 12px; border-radius: 8px; margin-top: 10px;">
+                    <div style="text-align: center;"><p style="color:#9ca3af; font-size:0.7rem; margin:0;">LOT</p><p style="color:#fff; font-size:1.2rem; font-family:Oswald; margin:0;">{lot}</p></div>
+                    <div style="text-align: center;"><p style="color:#9ca3af; font-size:0.7rem; margin:0;">ENTRY</p><p style="color:#d4af37; font-size:1.2rem; font-family:Oswald; margin:0;">{format(entry, fmt)}</p></div>
+                    <div style="text-align: center;"><p style="color:#9ca3af; font-size:0.7rem; margin:0;">SL</p><p style="color:#ff3366; font-size:1.2rem; font-family:Oswald; margin:0;">{format(sl, fmt)}</p></div>
+                    <div style="text-align: center;"><p style="color:#9ca3af; font-size:0.7rem; margin:0;">TARGET (3D)</p><p style="color:#00ff88; font-size:1.2rem; font-family:Oswald; margin:0;">{format(tp1, fmt)}</p></div>
                 </div>
             </div>
             """, unsafe_allow_html=True)
             
-            if st.button("💾 SAVE ENTRY TO JOURNAL", use_container_width=True):
-                log_to_journal(active_data["NAMA"], sig, lot, format(entry_area, fmt), format(sl, fmt), format(tp1, fmt))
-                st.success(f"Setup {active_data['NAMA']} berhasil direkam ke Jurnal!")
+            fig = go.Figure(data=[go.Candlestick(x=df_chart.index, open=df_chart['Open'], high=df_chart['High'], low=df_chart['Low'], close=df_chart['Close'], name='Price')])
+            fig.update_layout(template='plotly_dark', height=350, margin=dict(l=0, r=0, t=20, b=0), xaxis_rangeslider_visible=False)
+            st.plotly_chart(fig, use_container_width=True)
 
-            st.markdown("<br>", unsafe_allow_html=True)
-            with st.spinner("Memuat Chart Pro..."):
-                if not df_chart.empty:
-                    df_chart['EMA20'] = df_chart['Close'].ewm(span=20, adjust=False).mean()
-                    df_chart['SMA50'] = df_chart['Close'].rolling(window=50).mean()
-                    
-                    fig = go.Figure()
-                    fig.add_trace(go.Candlestick(
-                        x=df_chart.index, open=df_chart['Open'], high=df_chart['High'],
-                        low=df_chart['Low'], close=df_chart['Close'],
-                        increasing_line_color='#00ff88', decreasing_line_color='#ff3366', name='Price'
-                    ))
-                    fig.add_trace(go.Scatter(x=df_chart.index, y=df_chart['EMA20'], line=dict(color='#ffd700', width=1.5), name='EMA 20'))
-                    fig.add_trace(go.Scatter(x=df_chart.index, y=df_chart['SMA50'], line=dict(color='#00bfff', width=1.5), name='SMA 50'))
-
-                    fig.update_layout(
-                        template='plotly_dark', height=380, margin=dict(l=5, r=5, t=35, b=5),
-                        xaxis_rangeslider_visible=False,
-                        yaxis=dict(fixedrange=True, autorange=True, gridcolor='rgba(255,255,255,0.05)', zeroline=False),
-                        xaxis=dict(fixedrange=True, gridcolor='rgba(255,255,255,0.05)', zeroline=False),
-                        paper_bgcolor='rgba(0,0,0,0)', plot_bgcolor='rgba(0,0,0,0)',
-                        legend=dict(orientation="h", yanchor="bottom", y=1.02, xanchor="right", x=1, font=dict(size=10, color="#d1d5db"))
-                    )
-                    st.plotly_chart(fig, use_container_width=True, config={'displayModeBar': False, 'scrollZoom': False, 'showAxisDragHandles': False})
+            if st.button("💾 SAVE & CAPTURE CHART TO JOURNAL", use_container_width=True):
+                # Menambahkan garis Entry/SL/TP ke chart jurnal
+                fig.add_hline(y=entry, line_dash="dash", line_color="#d4af37", annotation_text="ENTRY")
+                fig.add_hline(y=sl, line_dash="solid", line_color="#ff3366", annotation_text="SL")
+                fig.add_hline(y=tp1, line_dash="solid", line_color="#00ff88", annotation_text="TP 1")
+                log_to_journal(active_data["NAMA"], sig, lot, format(entry, fmt), format(sl, fmt), format(tp1, fmt), fig)
+                st.success(f"Rekaman Taktis & Visual Chart {active_data['NAMA']} berhasil diamankan di folder 'Visual_Journals'!")
 
     # ==========================================
     # 7. AREA JURNAL
     # ==========================================
     st.markdown("---")
-    st.markdown("<h3 style='font-family: Oswald; color: #d4af37; margin-bottom:10px;'>📜 BLACK BOX JOURNAL</h3>", unsafe_allow_html=True)
-    
+    st.markdown("<h3 style='font-family: Oswald; color: #d4af37;'>📜 BLACK BOX JOURNAL</h3>", unsafe_allow_html=True)
     if os.path.exists(JOURNAL_FILE):
         df_journal = pd.read_csv(JOURNAL_FILE)
-        st.markdown(f"<p style='color:#00ff88; font-size:0.9rem;'>Total Pertempuran Direkam: {len(df_journal)} Setup</p>", unsafe_allow_html=True)
         st.dataframe(df_journal.tail(10), hide_index=True, use_container_width=True)
-        
-        col_btn1, col_btn2 = st.columns(2)
-        with col_btn1:
-            with open(JOURNAL_FILE, "rb") as file:
-                st.download_button(label="📥 DOWNLOAD CSV", data=file, file_name="jgfx_journal.csv", mime="text/csv", use_container_width=True)
-        with col_btn2:
-            if st.button("🗑️ CLEAR JOURNAL", use_container_width=True):
-                os.remove(JOURNAL_FILE)
-                st.rerun()
-    else:
-        st.info("Jurnal masih kosong. Silakan klik 'SAVE ENTRY TO JOURNAL' pada kartu eksekusi untuk mulai merekam data.")
+        if st.button("🗑️ CLEAR JOURNAL"):
+            os.remove(JOURNAL_FILE)
+            st.rerun()

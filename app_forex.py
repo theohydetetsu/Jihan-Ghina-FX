@@ -8,15 +8,14 @@ import warnings
 import requests
 import json
 import os
-import csv
 import plotly.graph_objects as go
 
 warnings.filterwarnings('ignore')
 
 # ==========================================
-# 1. KONFIGURASI UI STYLE & LUXURY CSS (MOBILE OPTIMIZED)
+# 1. KONFIGURASI UI STYLE & LUXURY CSS
 # ==========================================
-st.set_page_config(page_title="JIHAN-GHINA FX v12.1 | GOD-MODE", page_icon="💎", layout="wide")
+st.set_page_config(page_title="JIHAN-GHINA FX v12.2 | GOD-MODE", page_icon="💎", layout="wide")
 
 st.markdown("""
 <style>
@@ -28,7 +27,6 @@ st.markdown("""
         color: #f3f4f6 !important; 
     }
     
-    /* Padding untuk HP */
     .block-container { padding-top: 1.5rem !important; padding-bottom: 2rem; max-width: 100% !important; overflow-x: hidden; }
     
     [data-testid="stSidebar"] {
@@ -103,11 +101,7 @@ if st.session_state.get('logged_out', False):
     st.markdown("<div style='text-align: center; margin-top: 20vh;'><h1 style='color: #ff3366; font-family: Oswald;'>SYSTEM DISCONNECTED</h1><p>Silakan refresh halaman untuk login kembali.</p></div>", unsafe_allow_html=True)
     st.stop()
 
-# ==========================================
-# 2. MEMORY & JOURNALING SYSTEM
-# ==========================================
 CONFIG_FILE = "config_jgfx.json"
-JOURNAL_FILE = "jgfx_journal.csv"
 
 def load_capital():
     if os.path.exists(CONFIG_FILE):
@@ -119,17 +113,8 @@ def load_capital():
 def save_capital():
     with open(CONFIG_FILE, "w") as f: json.dump({"capital": st.session_state.input_modal}, f)
 
-def log_to_journal(asset, signal, lot, entry, sl, tp):
-    file_exists = os.path.isfile(JOURNAL_FILE)
-    with open(JOURNAL_FILE, mode='a', newline='') as file:
-        writer = csv.writer(file)
-        if not file_exists:
-            writer.writerow(["TIMESTAMP", "ASSET", "SIGNAL", "LOT", "ENTRY", "SL", "TARGET"])
-        timestamp = datetime.now(pytz.timezone('Asia/Jakarta')).strftime("%Y-%m-%d %H:%M:%S")
-        writer.writerow([timestamp, asset, signal, lot, entry, sl, tp])
-
 # ==========================================
-# 3. MACRO ENGINE (MONTHLY SENTIMENT)
+# 2. MACRO ENGINE (BYPASS CLOUDFLARE)
 # ==========================================
 DB_MACRO_BASE = {
     "USD": {"Skor_Base": 35}, "EUR": {"Skor_Base": 10}, "GBP": {"Skor_Base": 20},
@@ -144,7 +129,6 @@ def parse_number(val):
     if 'K' in s: mult = 1e3
     elif 'M' in s: mult = 1e6
     elif 'B' in s: mult = 1e9
-    
     s_clean = ''.join(c for c in s if c.isdigit() or c in ['.', '-'])
     try:
         return float(s_clean) * mult if s_clean not in ["", "-", "."] else None
@@ -153,25 +137,24 @@ def parse_number(val):
 def fetch_live_calendar():
     impact = {k: 0 for k in DB_MACRO_BASE.keys()}
     api_status = "OK"
-    ts = int(datetime.now().timestamp())
     
-    # MENGGUNAKAN DATA SEBULAN PENUH
+    # URL tanpa cache-buster agar tidak dicurigai sebagai bot oleh Cloudflare
     urls = [
-        f"https://nfs.faireconomy.media/ff_calendar_thismonth.json?_={ts}", 
-        f"https://nfs.gweb.io/analytics/calendar/this-month?_={ts}"
+        "https://nfs.faireconomy.media/ff_calendar_thismonth.json", 
+        "https://nfs.gweb.io/analytics/calendar/this-month"
     ]
     
     data = None
-    # ANTI-BLOCKER HEADERS
     headers = {
-        "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36",
+        "User-Agent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36",
         "Accept": "application/json, text/javascript, */*; q=0.01",
+        "Accept-Language": "en-US,en;q=0.9",
         "Referer": "https://www.forexfactory.com/"
     }
 
     for url in urls:
         try:
-            resp = requests.get(url, headers=headers, timeout=8)
+            resp = requests.get(url, headers=headers, timeout=10)
             if resp.status_code == 200: 
                 data = resp.json()
                 break
@@ -190,12 +173,10 @@ def fetch_live_calendar():
                 
                 if a is not None and f is not None:
                     is_inverse = any(kw in title for kw in ["unemployment", "jobless", "claims", "deficit"])
-                    # BOBOT DITURUNKAN KE 10 PER EVENT KARENA DIHITUNG SEBULAN
                     point = 10
                     if not is_inverse: impact[curr] += point if a > f else (-point if a < f else 0)
                     else: impact[curr] += point if a < f else (-point if a > f else 0)
         
-        # LIMIT MAX SCORE (SABUK PENGAMAN AGAR TEKNIKAL TETAP RELEVAN)
         for k in impact:
             if impact[k] > 60: impact[k] = 60
             elif impact[k] < -60: impact[k] = -60
@@ -205,7 +186,7 @@ def fetch_live_calendar():
     return impact, api_status
 
 # ==========================================
-# 4. SUPER-CHARGED TECHNICAL SCANNER (SMC + ADX + BB)
+# 3. SUPER-CHARGED TECHNICAL SCANNER
 # ==========================================
 roster_forex = ["EURUSD=X", "GBPUSD=X", "USDJPY=X", "AUDUSD=X", "USDCAD=X", "USDCHF=X", "XAUUSD=X"]
 nama_pairs = {"EURUSD=X": "EUR/USD", "GBPUSD=X": "GBP/USD", "USDJPY=X": "USD/JPY", "AUDUSD=X": "AUD/USD", "USDCAD=X": "USD/CAD", "USDCHF=X": "USD/CHF", "XAUUSD=X": "GOLD (XAU)"}
@@ -219,7 +200,6 @@ def fetch_op_forex(ticker):
         df_h4 = df_h1.resample('4h').agg({'Open':'first', 'High':'max', 'Low':'min', 'Close':'last'}).dropna()
         df_d1 = df_h1.resample('1d').agg({'Open':'first', 'High':'max', 'Low':'min', 'Close':'last'}).dropna()
 
-        # SMC: Order Blocks / Liquidity Zones
         swing_high = float(df_h1['High'].rolling(20).max().iloc[-2])
         swing_low = float(df_h1['Low'].rolling(20).min().iloc[-2])
 
@@ -238,7 +218,6 @@ def fetch_op_forex(ticker):
              np.maximum(np.abs(df_h1['High'] - df_h1['Close'].shift()), np.abs(df_h1['Low'] - df_h1['Close'].shift())))
         df_h1['ATR'] = pd.Series(tr, index=df_h1.index).rolling(14).mean()
         
-        # ADX (Trend Strength AI)
         high_diff = df_h1['High'].diff()
         low_diff = df_h1['Low'].shift() - df_h1['Low']
         df_h1['+DM'] = np.where((high_diff > low_diff) & (high_diff > 0), high_diff, 0.0)
@@ -298,7 +277,7 @@ def fetch_op_forex(ticker):
         return None
 
 # ==========================================
-# 5. UI SIDEBAR & INIT
+# 4. UI SIDEBAR & INIT
 # ==========================================
 if "op_data" not in st.session_state: st.session_state.op_data = []
 if "new_scan" not in st.session_state: st.session_state.new_scan = False
@@ -341,9 +320,9 @@ with st.sidebar:
         st.rerun()
 
 # ==========================================
-# 6. MAIN DASHBOARD (MATRIX & MACRO)
+# 5. MAIN DASHBOARD (MATRIX & MACRO)
 # ==========================================
-st.markdown("<p class='title-op'>JIHAN-GHINA FX <span style='color: #ffffff; font-size: 1.1rem; font-weight: 300;'>v12.1 <span style='color:#00ff88; font-size:0.8rem; font-weight:bold;'>| GOD-MODE</span></span></p>", unsafe_allow_html=True)
+st.markdown("<p class='title-op'>JIHAN-GHINA FX <span style='color: #ffffff; font-size: 1.1rem; font-weight: 300;'>v12.2 <span style='color:#00ff88; font-size:0.8rem; font-weight:bold;'>| GOD-MODE</span></span></p>", unsafe_allow_html=True)
 
 now_wib = datetime.now(pytz.timezone('Asia/Jakarta'))
 jam = now_wib.hour
@@ -402,8 +381,9 @@ else:
         
         if "TITANIUM" in rek: titanium_found.append(pair)
 
+        # Nama kolom diganti jadi "PAIR" agar tidak terpotong
         matrix_rows.append({
-            "ASSET": pair, "PRICE": f"{raw['HARGA_SCAN']:.4f}" if "JPY" not in pair else f"{raw['HARGA_SCAN']:.2f}",
+            "PAIR": pair, "PRICE": f"{raw['HARGA_SCAN']:.4f}" if "JPY" not in pair else f"{raw['HARGA_SCAN']:.2f}",
             "REGIME": raw["REGIME"], "ADX": f"{raw['ADX']:.1f}", "FUND": f"{f_score:+d}",
             "SCORE": f"{total_score:+d}", "SIGNAL": rek, "RAW_TOTAL": total_score
         })
@@ -424,7 +404,7 @@ else:
     st.dataframe(pd.DataFrame(matrix_rows).drop(columns=['RAW_TOTAL']).style.map(style_matrix), use_container_width=True, hide_index=True)
 
     # ==========================================
-    # 7. TACTICAL EXECUTION & VISUAL CHART
+    # 6. TACTICAL EXECUTION & VISUAL CHART
     # ==========================================
     st.markdown("---")
     st.markdown("<h3 style='font-family: Oswald; color: #ffffff; letter-spacing:1px;'>🎯 TACTICAL EXECUTION</h3>", unsafe_allow_html=True)
@@ -435,7 +415,7 @@ else:
     
     if st.session_state.pair_selector:
         active_data = next((item for item in st.session_state.op_data if item["NAMA"] == st.session_state.pair_selector), None)
-        active_matrix = next((item for item in matrix_rows if item["ASSET"] == st.session_state.pair_selector), None)
+        active_matrix = next((item for item in matrix_rows if item["PAIR"] == st.session_state.pair_selector), None)
         
         if active_data and active_matrix:
             try:
@@ -475,7 +455,6 @@ else:
             win_rate = min(98, 50 + abs(active_matrix["RAW_TOTAL"]) + (10 if active_data['ADX'] > 25 else -15))
             if "NEUTRAL" in sig: win_rate = np.random.randint(45, 55)
 
-            # PERBAIKAN MOBILE UI (WHITE-SPACE: NOWRAP, UKURAN FONT DI KECILKAN AGAR FIT 1 BARIS)
             st.markdown(f"""
             <div class="directive-card neon-float" style="border: 2px solid {color}; box-shadow: 0 0 15px {glow};">
                 <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px;">
@@ -508,10 +487,6 @@ else:
                 </div>
             </div>
             """, unsafe_allow_html=True)
-            
-            if st.button("💾 SAVE SETUP TO BLACK BOX", use_container_width=True):
-                log_to_journal(active_data["NAMA"], sig, lot, format(entry_area, fmt), format(sl, fmt), format(tp1, fmt))
-                st.success(f"Setup {active_data['NAMA']} direkam!")
 
             st.markdown("<br>", unsafe_allow_html=True)
             with st.spinner("Memuat Tactical Chart..."):
@@ -538,34 +513,14 @@ else:
                         fig.add_hline(y=sl, line_dash="dash", line_color="#ff3366", line_width=1.5, annotation_text="🛡️ SL", annotation_position="bottom right", annotation_font_color="#ff3366", annotation_font_size=10)
                         fig.add_hline(y=tp1, line_dash="dash", line_color="#00ff88", line_width=1.5, annotation_text="💰 TP", annotation_position="top right", annotation_font_color="#00ff88", annotation_font_size=10)
 
+                    # FITUR BARU: AUTO LOCK CHART (fixedrange=True & dragmode=False)
                     fig.update_layout(
+                        dragmode=False, 
                         template='plotly_dark', height=400, margin=dict(l=5, r=40, t=10, b=5), 
                         xaxis_rangeslider_visible=False,
-                        yaxis=dict(fixedrange=False, gridcolor='rgba(255,255,255,0.05)', zeroline=False),
-                        xaxis=dict(fixedrange=False, gridcolor='rgba(255,255,255,0.05)', zeroline=False),
+                        yaxis=dict(fixedrange=True, gridcolor='rgba(255,255,255,0.05)', zeroline=False),
+                        xaxis=dict(fixedrange=True, gridcolor='rgba(255,255,255,0.05)', zeroline=False),
                         paper_bgcolor='rgba(0,0,0,0)', plot_bgcolor='rgba(0,0,0,0)',
                         legend=dict(orientation="h", yanchor="bottom", y=1.02, xanchor="right", x=1, font=dict(size=10))
                     )
-                    st.plotly_chart(fig, use_container_width=True, config={'displayModeBar': False, 'scrollZoom': True})
-
-    # ==========================================
-    # 8. BLACK BOX JOURNAL
-    # ==========================================
-    st.markdown("---")
-    st.markdown("<h3 style='font-family: Oswald; color: #ffffff; font-size:1.5rem;'>📜 BLACK BOX JOURNAL</h3>", unsafe_allow_html=True)
-    
-    if os.path.exists(JOURNAL_FILE):
-        df_journal = pd.read_csv(JOURNAL_FILE)
-        st.markdown(f"<p style='color:#00bfff; font-size:0.8rem;'>Total Setup Terekam: {len(df_journal)} Data</p>", unsafe_allow_html=True)
-        st.dataframe(df_journal.tail(10), hide_index=True, use_container_width=True)
-        
-        col_btn1, col_btn2 = st.columns(2)
-        with col_btn1:
-            with open(JOURNAL_FILE, "rb") as file:
-                st.download_button("📥 DWNLD CSV", data=file, file_name="jgfx_journal.csv", mime="text/csv", use_container_width=True)
-        with col_btn2:
-            if st.button("🗑️ CLEAR", use_container_width=True):
-                os.remove(JOURNAL_FILE)
-                st.rerun()
-    else:
-        st.info("Jurnal kosong.")
+                    st.plotly_chart(fig, use_container_width=True, config={'displayModeBar': False, 'scrollZoom': False})

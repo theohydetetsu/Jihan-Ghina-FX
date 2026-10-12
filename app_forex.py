@@ -15,7 +15,7 @@ warnings.filterwarnings('ignore')
 # ==========================================
 # 1. KONFIGURASI UI STYLE & LUXURY CSS
 # ==========================================
-st.set_page_config(page_title="JIHAN-GHINA FX v12.3 | GOD-MODE", page_icon="💎", layout="wide")
+st.set_page_config(page_title="JIHAN-GHINA FX v13.0 | INSTITUTIONAL", page_icon="🏦", layout="wide")
 
 st.markdown("""
 <style>
@@ -23,17 +23,14 @@ st.markdown("""
     html, body, [class*="css"] { font-family: 'Plus Jakarta Sans', sans-serif; }
     
     [data-testid="stAppViewContainer"] { 
-        background: radial-gradient(circle at 50% 0%, #1a1616, #050505) !important; 
+        background: radial-gradient(circle at 50% 0%, #111418, #050505) !important; 
         color: #f3f4f6 !important; 
     }
     
-    /* PERBAIKAN: Padding atas ditambah menjadi 4rem agar judul tidak tertutup batas layar HP */
     .block-container { padding-top: 4rem !important; padding-bottom: 2rem; max-width: 100% !important; overflow-x: hidden; }
     
-    /* PERBAIKAN: Ukuran Sidebar dikecilkan dari 260px menjadi 210px */
     [data-testid="stSidebar"] {
-        min-width: 210px !important;
-        max-width: 210px !important;
+        min-width: 210px !important; max-width: 210px !important;
         background: linear-gradient(180deg, rgba(15,12,12,0.98) 0%, rgba(5,5,5,0.98) 100%) !important;
         border-right: 1px solid rgba(212, 175, 55, 0.3) !important;
     }
@@ -41,13 +38,9 @@ st.markdown("""
     .title-op {
         font-family: 'Oswald', sans-serif;
         background: linear-gradient(to right, #d4af37, #ffdf00, #ffffff);
-        -webkit-background-clip: text;
-        -webkit-text-fill-color: transparent;
-        font-weight: 700;
-        font-size: 2.2rem;
-        text-transform: uppercase;
-        margin-bottom: -5px;
-        letter-spacing: 1px;
+        -webkit-background-clip: text; -webkit-text-fill-color: transparent;
+        font-weight: 700; font-size: 2.2rem; text-transform: uppercase;
+        margin-bottom: -5px; letter-spacing: 1px;
     }
     
     @keyframes neonPulse {
@@ -55,52 +48,35 @@ st.markdown("""
         50% { box-shadow: 0 8px 15px rgba(212, 175, 55, 0.3), inset 0 0 10px rgba(212, 175, 55, 0.2); transform: translateY(-2px); }
         100% { box-shadow: 0 0 5px rgba(212, 175, 55, 0.1), inset 0 0 2px rgba(212, 175, 55, 0.05); transform: translateY(0px); }
     }
-
     .neon-float { animation: neonPulse 3s infinite ease-in-out; }
     
     .macro-container { display: grid; grid-template-columns: repeat(4, 1fr); gap: 6px; margin-bottom: 15px; }
-    
     .macro-badge {
-        background: rgba(20, 15, 15, 0.85);
-        border: 1px solid rgba(212, 175, 55, 0.5);
-        border-radius: 8px;
-        padding: 8px 2px;
-        text-align: center;
-        display: flex;
-        flex-direction: column;
-        justify-content: center;
-        transition: all 0.3s ease;
+        background: rgba(20, 15, 15, 0.85); border: 1px solid rgba(212, 175, 55, 0.5);
+        border-radius: 8px; padding: 8px 2px; text-align: center;
+        display: flex; flex-direction: column; justify-content: center; transition: all 0.3s ease;
     }
     
     .directive-card {
         background: linear-gradient(145deg, #161214 0%, #0a0808 100%);
-        border: 1px solid rgba(212, 175, 55, 0.6);
-        border-radius: 12px;
-        padding: 15px;
-        margin-bottom: 10px;
+        border: 1px solid rgba(212, 175, 55, 0.6); border-radius: 12px;
+        padding: 15px; margin-bottom: 10px;
     }
     
     .btn-scan > button { 
         background: linear-gradient(90deg, #d4af37 0%, #ffdf00 50%, #d4af37 100%) !important; 
-        background-size: 200% auto;
-        color: #000000 !important; 
-        border-radius: 8px !important; 
-        font-weight: 900 !important;
-        font-family: 'Oswald', sans-serif;
-        letter-spacing: 1px;
-        font-size: 1.1rem !important;
-        padding: 10px 0 !important;
-        width: 100% !important;
-        transition: 0.5s !important;
-        border: none !important;
-        box-shadow: 0 0 15px rgba(212,175,55,0.4);
+        background-size: 200% auto; color: #000000 !important; 
+        border-radius: 8px !important; font-weight: 900 !important;
+        font-family: 'Oswald', sans-serif; letter-spacing: 1px;
+        font-size: 1.1rem !important; padding: 10px 0 !important; width: 100% !important;
+        transition: 0.5s !important; border: none !important; box-shadow: 0 0 15px rgba(212,175,55,0.4);
     }
     .btn-scan > button:hover { background-position: right center; box-shadow: 0 0 20px rgba(212,175,55,0.7); }
 </style>
 """, unsafe_allow_html=True)
 
 if st.session_state.get('logged_out', False):
-    st.markdown("<div style='text-align: center; margin-top: 20vh;'><h1 style='color: #ff3366; font-family: Oswald;'>SYSTEM DISCONNECTED</h1><p>Silakan refresh halaman untuk login kembali.</p></div>", unsafe_allow_html=True)
+    st.markdown("<div style='text-align: center; margin-top: 20vh;'><h1 style='color: #ff3366; font-family: Oswald;'>SYSTEM DISCONNECTED</h1></div>", unsafe_allow_html=True)
     st.stop()
 
 CONFIG_FILE = "config_jgfx.json"
@@ -132,24 +108,17 @@ def parse_number(val):
     elif 'M' in s: mult = 1e6
     elif 'B' in s: mult = 1e9
     s_clean = ''.join(c for c in s if c.isdigit() or c in ['.', '-'])
-    try:
-        return float(s_clean) * mult if s_clean not in ["", "-", "."] else None
+    try: return float(s_clean) * mult if s_clean not in ["", "-", "."] else None
     except: return None
 
 def fetch_live_calendar():
     impact = {k: 0 for k in DB_MACRO_BASE.keys()}
     api_status = "OK"
-    
-    urls = [
-        "https://nfs.faireconomy.media/ff_calendar_thismonth.json", 
-        "https://nfs.gweb.io/analytics/calendar/this-month"
-    ]
-    
+    urls = ["https://nfs.faireconomy.media/ff_calendar_thismonth.json", "https://nfs.gweb.io/analytics/calendar/this-month"]
     data = None
     headers = {
         "User-Agent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36",
         "Accept": "application/json, text/javascript, */*; q=0.01",
-        "Accept-Language": "en-US,en;q=0.9",
         "Referer": "https://www.forexfactory.com/"
     }
 
@@ -169,9 +138,7 @@ def fetch_live_calendar():
             title = str(ev.get("title", "")).lower()
             
             if curr in impact and ("HIGH" in imp or "3" in imp):
-                a = parse_number(ev.get("actual", ""))
-                f = parse_number(ev.get("forecast", "")) or parse_number(ev.get("previous", ""))
-                
+                a, f = parse_number(ev.get("actual", "")), parse_number(ev.get("forecast", "")) or parse_number(ev.get("previous", ""))
                 if a is not None and f is not None:
                     is_inverse = any(kw in title for kw in ["unemployment", "jobless", "claims", "deficit"])
                     point = 10
@@ -179,18 +146,29 @@ def fetch_live_calendar():
                     else: impact[curr] += point if a < f else (-point if a > f else 0)
         
         for k in impact:
-            if impact[k] > 60: impact[k] = 60
-            elif impact[k] < -60: impact[k] = -60
-
+            impact[k] = min(max(impact[k], -60), 60)
     else: api_status = "API OFFLINE"
         
     return impact, api_status
 
 # ==========================================
-# 3. SUPER-CHARGED TECHNICAL SCANNER
+# 3. 💥 INSTITUTIONAL SCANNER (CSM, FVG, RVOL)
 # ==========================================
 roster_forex = ["EURUSD=X", "GBPUSD=X", "USDJPY=X", "AUDUSD=X", "USDCAD=X", "USDCHF=X", "XAUUSD=X"]
 nama_pairs = {"EURUSD=X": "EUR/USD", "GBPUSD=X": "GBP/USD", "USDJPY=X": "USD/JPY", "AUDUSD=X": "AUD/USD", "USDCAD=X": "USD/CAD", "USDCHF=X": "USD/CHF", "XAUUSD=X": "GOLD (XAU)"}
+
+def detect_fvg(df):
+    """Mendeteksi Fair Value Gap (Bullish/Bearish) pada 3 candle terakhir"""
+    if len(df) < 3: return "NONE", 0.0
+    c1, c2, c3 = df.iloc[-3], df.iloc[-2], df.iloc[-1]
+    
+    # Bullish FVG (Gap antara High C1 dan Low C3)
+    if c1['High'] < c3['Low'] and c2['Close'] > c2['Open']:
+        return "BULLISH_FVG", c3['Low']
+    # Bearish FVG (Gap antara Low C1 dan High C3)
+    elif c1['Low'] > c3['High'] and c2['Close'] < c2['Open']:
+        return "BEARISH_FVG", c3['High']
+    return "NONE", 0.0
 
 def fetch_op_forex(ticker):
     try:
@@ -198,8 +176,16 @@ def fetch_op_forex(ticker):
         df_h1 = tk.history(period="2mo", interval="1h").ffill()
         if len(df_h1) < 50: return None
         
-        df_h4 = df_h1.resample('4h').agg({'Open':'first', 'High':'max', 'Low':'min', 'Close':'last'}).dropna()
+        df_h4 = df_h1.resample('4h').agg({'Open':'first', 'High':'max', 'Low':'min', 'Close':'last', 'Volume':'sum'}).dropna()
         df_d1 = df_h1.resample('1d').agg({'Open':'first', 'High':'max', 'Low':'min', 'Close':'last'}).dropna()
+
+        # SENJATA BARU: FAIR VALUE GAP (FVG)
+        fvg_type, fvg_price = detect_fvg(df_h1)
+
+        # SENJATA BARU: TICK VOLUME SPIKE (Institusi masuk)
+        avg_vol = df_h1['Volume'].rolling(20).mean().iloc[-1]
+        curr_vol = df_h1['Volume'].iloc[-1]
+        vol_spike = curr_vol > (avg_vol * 1.5)
 
         swing_high = float(df_h1['High'].rolling(20).max().iloc[-2])
         swing_low = float(df_h1['Low'].rolling(20).min().iloc[-2])
@@ -208,22 +194,19 @@ def fetch_op_forex(ticker):
         df_h1['EMA50'] = df_h1['Close'].ewm(span=50, adjust=False).mean()
         
         delta = df_h1['Close'].diff()
-        gain = (delta.where(delta > 0, 0)).rolling(14).mean()
-        loss = (-delta.where(delta < 0, 0)).rolling(14).mean()
+        gain, loss = (delta.where(delta > 0, 0)).rolling(14).mean(), (-delta.where(delta < 0, 0)).rolling(14).mean()
         df_h1['RSI'] = 100 - (100 / (1 + gain / loss))
         
         df_h1['MACD'] = df_h1['Close'].ewm(span=12, adjust=False).mean() - df_h1['Close'].ewm(span=26, adjust=False).mean()
         df_h1['Signal'] = df_h1['MACD'].ewm(span=9, adjust=False).mean()
         
-        tr = np.maximum(df_h1['High'] - df_h1['Low'], 
-             np.maximum(np.abs(df_h1['High'] - df_h1['Close'].shift()), np.abs(df_h1['Low'] - df_h1['Close'].shift())))
+        tr = np.maximum(df_h1['High'] - df_h1['Low'], np.maximum(np.abs(df_h1['High'] - df_h1['Close'].shift()), np.abs(df_h1['Low'] - df_h1['Close'].shift())))
         df_h1['ATR'] = pd.Series(tr, index=df_h1.index).rolling(14).mean()
         
-        high_diff = df_h1['High'].diff()
-        low_diff = df_h1['Low'].shift() - df_h1['Low']
+        # ADX
+        high_diff, low_diff = df_h1['High'].diff(), df_h1['Low'].shift() - df_h1['Low']
         df_h1['+DM'] = np.where((high_diff > low_diff) & (high_diff > 0), high_diff, 0.0)
         df_h1['-DM'] = np.where((low_diff > high_diff) & (low_diff > 0), low_diff, 0.0)
-        
         df_h1['+DI'] = 100 * (df_h1['+DM'].ewm(alpha=1/14, adjust=False).mean() / df_h1['ATR'])
         df_h1['-DI'] = 100 * (df_h1['-DM'].ewm(alpha=1/14, adjust=False).mean() / df_h1['ATR'])
         df_h1['DX'] = 100 * np.abs(df_h1['+DI'] - df_h1['-DI']) / (df_h1['+DI'] + df_h1['-DI'] + 1e-10)
@@ -231,11 +214,9 @@ def fetch_op_forex(ticker):
 
         df_h1['BB_MID'] = df_h1['Close'].rolling(20).mean()
         df_h1['BB_STD'] = df_h1['Close'].rolling(20).std()
-        df_h1['BB_UP'] = df_h1['BB_MID'] + (2 * df_h1['BB_STD'])
-        df_h1['BB_LOW'] = df_h1['BB_MID'] - (2 * df_h1['BB_STD'])
+        df_h1['BB_UP'], df_h1['BB_LOW'] = df_h1['BB_MID'] + (2 * df_h1['BB_STD']), df_h1['BB_MID'] - (2 * df_h1['BB_STD'])
 
-        df_h4['EMA20'] = df_h4['Close'].ewm(span=20, adjust=False).mean()
-        df_d1['EMA20'] = df_d1['Close'].ewm(span=20, adjust=False).mean()
+        df_h4['EMA20'], df_d1['EMA20'] = df_h4['Close'].ewm(span=20, adjust=False).mean(), df_d1['Close'].ewm(span=20, adjust=False).mean()
 
         last = df_h1.iloc[-1]
         last_h4 = df_h4.iloc[-1] if not df_h4.empty else last
@@ -245,6 +226,7 @@ def fetch_op_forex(ticker):
         h4_trend = "UP" if last_h4['Close'] > last_h4['EMA20'] else "DOWN"
         d1_trend = "UP" if last_d1['Close'] > last_d1['EMA20'] else "DOWN"
 
+        # SCORING ENGINE
         tech_score = 0
         if h1_trend == h4_trend == d1_trend == "UP": tech_score += 30
         elif h1_trend == h4_trend == d1_trend == "DOWN": tech_score -= 30
@@ -258,11 +240,15 @@ def fetch_op_forex(ticker):
         if 40 <= last['RSI'] <= 65 and tech_score > 0: tech_score += 10 
         elif 35 <= last['RSI'] <= 60 and tech_score < 0: tech_score -= 10 
         
+        # BONUS VOLUME SPIKE (Institusi Masuk)
+        if vol_spike and tech_score > 0: tech_score += 15
+        elif vol_spike and tech_score < 0: tech_score -= 15
+
         if last['ADX'] > 25: 
-            tech_score = int(tech_score * 1.2) 
+            tech_score = int(tech_score * 1.3) 
             regime = "📈 TRENDING"
         elif last['ADX'] < 20: 
-            tech_score = int(tech_score * 0.4) 
+            tech_score = int(tech_score * 0.3) # Penalti keras di Choppy
             regime = "⚠️ CHOPPY"
         else:
             regime = "⚡ VOLATILE" if (last['BB_UP'] - last['BB_LOW']) > (last['ATR'] * 4) else "🔄 NEUTRAL"
@@ -272,10 +258,10 @@ def fetch_op_forex(ticker):
             "EMA20": float(last['EMA20']), "EMA50": float(last['EMA50']),
             "RSI": float(last['RSI']), "ADX": float(last['ADX']), "REGIME": regime,
             "ATR": float(last['ATR']), "MTF": f"{d1_trend} | {h4_trend} | {h1_trend}",
-            "TECH_SCORE": tech_score, "SWING_HIGH": swing_high, "SWING_LOW": swing_low
+            "TECH_SCORE": tech_score, "SWING_HIGH": swing_high, "SWING_LOW": swing_low,
+            "FVG_TYPE": fvg_type, "FVG_PRICE": fvg_price
         }
-    except Exception as e: 
-        return None
+    except Exception as e: return None
 
 # ==========================================
 # 4. UI SIDEBAR & INIT
@@ -323,10 +309,13 @@ with st.sidebar:
 # ==========================================
 # 5. MAIN DASHBOARD (MATRIX & MACRO)
 # ==========================================
-st.markdown("<p class='title-op'>JIHAN-GHINA FX <span style='color: #ffffff; font-size: 1.1rem; font-weight: 300;'>v12.3 <span style='color:#00ff88; font-size:0.8rem; font-weight:bold;'>| GOD-MODE</span></span></p>", unsafe_allow_html=True)
+st.markdown("<p class='title-op'>JIHAN-GHINA FX <span style='color: #ffffff; font-size: 1.1rem; font-weight: 300;'>v13.0 <span style='color:#00ff88; font-size:0.8rem; font-weight:bold;'>| INSTITUTIONAL</span></span></p>", unsafe_allow_html=True)
 
 now_wib = datetime.now(pytz.timezone('Asia/Jakarta'))
 jam = now_wib.hour
+
+# SENJATA BARU: KILLZONE FILTER (Cek apakah ini jam volatile/ramai)
+is_killzone = (14 <= jam < 23) 
 
 sesi_html = f"""
 <div style="display: flex; gap: 6px; flex-wrap: wrap; margin-bottom: 15px; margin-top: 5px;">
@@ -343,12 +332,15 @@ if not st.session_state.op_data:
 else:
     status_api = st.session_state.get('api_status', 'STANDBY')
     api_text = f"<span style='color: {'#00ff88' if status_api == 'OK' else '#ff3366'};'>{status_api}</span>" if not use_manual_ff else f"<span style='color:#00bfff;'>🛠️ OVERRIDE</span>"
-    st.markdown(f"<p style='color:#9ca3af; font-size: 0.75rem; margin-top:0; margin-bottom:10px;'>⚡ Scan: <span style='color:#ffffff; font-weight:bold;'>{st.session_state.get('last_run', '')}</span> | Srv: {api_text}</p>", unsafe_allow_html=True)
+    kz_text = "<span style='color:#00ff88;'>ACTIVE 🔥</span>" if is_killzone else "<span style='color:#9ca3af;'>LOW VOLUME 💤</span>"
+    
+    st.markdown(f"<p style='color:#9ca3af; font-size: 0.75rem; margin-top:0; margin-bottom:10px;'>⚡ Scan: <span style='color:#ffffff; font-weight:bold;'>{st.session_state.get('last_run', '')}</span> | Srv: {api_text} | K-Zone: {kz_text}</p>", unsafe_allow_html=True)
     
     cal_mod = st.session_state.get("cal_impact_dict", {})
     macro_html = '<div class="macro-container">'
     final_macro_db = {}
     
+    # MENGHITUNG KEKUATAN CURRENCY
     for curr, base_data in DB_MACRO_BASE.items():
         base_score = base_data["Skor_Base"]
         live_impact = manual_dict.get(curr, 0) if use_manual_ff else cal_mod.get(curr, 0)
@@ -369,35 +361,42 @@ else:
         else:
             try:
                 b, q = pair.split("/")
+                # CSM (Currency Strength Meter) Calculation
                 f_score = final_macro_db[b] - final_macro_db[q]
             except: f_score = 0
             
         total_score = raw["TECH_SCORE"] + f_score
         
-        if total_score >= 65: rek = "🔥 TITANIUM BUY"
+        # Penalti/Diskon jika di luar zona waktu Eropa/Amerika
+        if not is_killzone: total_score = int(total_score * 0.7)
+
+        if total_score >= 70: rek = "🔥 TITANIUM BUY"
         elif total_score >= 35: rek = "🟢 STRONG BUY"
-        elif total_score <= -65: rek = "🩸 TITANIUM SELL"
+        elif total_score <= -70: rek = "🩸 TITANIUM SELL"
         elif total_score <= -35: rek = "🔴 STRONG SELL"
         else: rek = "⚪ NEUTRAL"
         
         if "TITANIUM" in rek: titanium_found.append(pair)
 
+        # FVG Indicator Display
+        fvg_disp = "🏦 B-FVG" if "BULLISH" in raw["FVG_TYPE"] else ("🏦 S-FVG" if "BEARISH" in raw["FVG_TYPE"] else "-")
+
         matrix_rows.append({
             "PAIR": pair, "PRICE": f"{raw['HARGA_SCAN']:.4f}" if "JPY" not in pair else f"{raw['HARGA_SCAN']:.2f}",
-            "REGIME": raw["REGIME"], "ADX": f"{raw['ADX']:.1f}", "FUND": f"{f_score:+d}",
+            "REGIME": raw["REGIME"], "FVG": fvg_disp, "FUND": f"{f_score:+d}",
             "SCORE": f"{total_score:+d}", "SIGNAL": rek, "RAW_TOTAL": total_score
         })
 
     if st.session_state.new_scan:
         if titanium_found:
-            st.success(f"🚨 **TITANIUM SIGNAL:** {', '.join(titanium_found)}!", icon="🔥")
-        else: st.toast('Scan Selesai.', icon='🔍')
+            st.success(f"🚨 **INSTITUTIONAL TITANIUM:** Sinyal kelas dewa di {', '.join(titanium_found)}!", icon="🔥")
+        else: st.toast('Scan Selesai. Market sedang konsolidasi.', icon='🔍')
         st.session_state.new_scan = False
 
     def style_matrix(val):
         if isinstance(val, str):
-            if "BUY" in val or "TRENDING" in val: return 'color: #00ff88; font-weight:bold;'
-            elif "SELL" in val or "CHOPPY" in val: return 'color: #ff3366; font-weight:bold;'
+            if "BUY" in val or "TRENDING" in val or "B-FVG" in val: return 'color: #00ff88; font-weight:bold;'
+            elif "SELL" in val or "CHOPPY" in val or "S-FVG" in val: return 'color: #ff3366; font-weight:bold;'
             elif "TITANIUM" in val: return 'color: #ffdf00; font-weight:bold;'
         return 'color: #d1d5db;'
 
@@ -433,18 +432,22 @@ else:
             risk_amount = acc_balance * (risk_pct / 100)
             fmt = ".3f" if ("JPY" in active_data["TICKER"] or "XAU" in active_data["TICKER"]) else ".5f"
             
+            # PENYESUAIAN ENTRY BERDASARKAN FVG (FAIR VALUE GAP)
             if is_buy:
-                entry_area = live_harga if is_titanium else active_data['EMA20']
+                # Jika ada FVG Bullish, pasang Jaring Limit Order di FVG Price, jika tidak ada pakai EMA20
+                entry_area = active_data["FVG_PRICE"] if active_data["FVG_TYPE"] == "BULLISH_FVG" else (live_harga if is_titanium else active_data['EMA20'])
                 sl = min(entry_area - (atr * 1.5), active_data['SWING_LOW'] - (atr * 0.2)) 
                 tp1 = entry_area + abs(entry_area - sl) * 1.5 
                 color, glow = "#00ff88", "rgba(0, 255, 136, 0.2)"
+                fvg_msg = "Bank Buy Limit Detected!" if active_data["FVG_TYPE"] == "BULLISH_FVG" else "Momentum Entry"
             elif is_sell:
-                entry_area = live_harga if is_titanium else active_data['EMA20']
+                entry_area = active_data["FVG_PRICE"] if active_data["FVG_TYPE"] == "BEARISH_FVG" else (live_harga if is_titanium else active_data['EMA20'])
                 sl = max(entry_area + (atr * 1.5), active_data['SWING_HIGH'] + (atr * 0.2))
                 tp1 = entry_area - abs(sl - entry_area) * 1.5
                 color, glow = "#ff3366", "rgba(255, 51, 102, 0.2)"
+                fvg_msg = "Bank Sell Limit Detected!" if active_data["FVG_TYPE"] == "BEARISH_FVG" else "Momentum Entry"
             else: 
-                sl, tp1, color, glow, entry_area = live_harga, live_harga, "#9ca3af", "transparent", live_harga
+                sl, tp1, color, glow, entry_area, fvg_msg = live_harga, live_harga, "#9ca3af", "transparent", live_harga, "Wait & See"
 
             sl_dist_price = abs(entry_area - sl)
             if "JPY" in active_data["TICKER"]: pips, pip_val = sl_dist_price * 100, 7.00
@@ -452,7 +455,7 @@ else:
             else: pips, pip_val = sl_dist_price * 10000, 10.0
                 
             lot = max(0.01, round((risk_amount / (pips * pip_val)) if pips > 0 else 0, 2)) if "NEUTRAL" not in sig else 0.00
-            win_rate = min(98, 50 + abs(active_matrix["RAW_TOTAL"]) + (10 if active_data['ADX'] > 25 else -15))
+            win_rate = min(99, 50 + abs(active_matrix["RAW_TOTAL"]) + (15 if "FVG" in active_data["FVG_TYPE"] else 0))
             if "NEUTRAL" in sig: win_rate = np.random.randint(45, 55)
 
             st.markdown(f"""
@@ -465,7 +468,7 @@ else:
                 </div>
                 <div style="display: flex; justify-content: space-between; margin-bottom: 12px; border-bottom: 1px solid rgba(255,255,255,0.1); padding-bottom:8px;">
                     <p style="color: #ffffff; font-size: 1rem; margin: 0;">Live: <span style="color: #d4af37; font-weight: bold; font-size:1.1rem;">{format(live_harga, fmt)}</span></p>
-                    <p style="color: #00bfff; font-size: 0.7rem; margin: 0; text-align:right;">💧 H: {format(active_data['SWING_HIGH'], fmt)}<br>💧 L: {format(active_data['SWING_LOW'], fmt)}</p>
+                    <p style="color: #00bfff; font-size: 0.7rem; margin: 0; text-align:right;">🏛️ AI Logic: {fvg_msg}<br>🛡️ Range: {int(pips)} Pips</p>
                 </div>
                 <div style="display: flex; justify-content: space-between; align-items: center; background: rgba(0,0,0,0.6); padding: 10px 5px; border-radius: 8px; border: 1px solid rgba(255,255,255,0.1);">
                     <div style="text-align: center; flex: 1;">
@@ -496,17 +499,26 @@ else:
                     df_chart['BB_UP'] = df_chart['BB_MID'] + (2 * df_chart['Close'].rolling(20).std())
                     df_chart['BB_LOW'] = df_chart['BB_MID'] - (2 * df_chart['Close'].rolling(20).std())
                     
+                    plot_df = df_chart.tail(60)
                     fig = go.Figure()
                     
                     fig.add_trace(go.Candlestick(
-                        x=df_chart.index, open=df_chart['Open'], high=df_chart['High'],
-                        low=df_chart['Low'], close=df_chart['Close'],
-                        increasing_line_color='#00ff88', decreasing_line_color='#ff3366', name='Price'
+                        x=plot_df.index, open=plot_df['Open'], high=plot_df['High'],
+                        low=plot_df['Low'], close=plot_df['Close'],
+                        increasing_line_color='#00ff88', decreasing_line_color='#ff3366', name='Price', showlegend=False
                     ))
                     
-                    fig.add_trace(go.Scatter(x=df_chart.index, y=df_chart['BB_UP'], line=dict(color='rgba(255,255,255,0.1)', width=1), name='BB Up', showlegend=False))
-                    fig.add_trace(go.Scatter(x=df_chart.index, y=df_chart['BB_LOW'], line=dict(color='rgba(255,255,255,0.1)', width=1), fill='tonexty', fillcolor='rgba(255,255,255,0.03)', name='BB Low', showlegend=False))
-                    fig.add_trace(go.Scatter(x=df_chart.index, y=df_chart['EMA20'], line=dict(color='#ffd700', width=1.5), name='EMA 20'))
+                    fig.add_trace(go.Scatter(x=plot_df.index, y=plot_df['BB_UP'], line=dict(color='rgba(255,255,255,0.03)', width=1), name='BB Up', showlegend=False))
+                    fig.add_trace(go.Scatter(x=plot_df.index, y=plot_df['BB_LOW'], line=dict(color='rgba(255,255,255,0.03)', width=1), fill='tonexty', fillcolor='rgba(255,255,255,0.02)', name='BB Low', showlegend=False))
+                    fig.add_trace(go.Scatter(x=plot_df.index, y=plot_df['EMA20'], line=dict(color='#ffd700', width=1.5), name='EMA 20', showlegend=False))
+
+                    # VISUALISASI FVG DI CHART (Area Kotak Biru Transparan)
+                    if active_data["FVG_TYPE"] != "NONE":
+                        fig.add_hrect(
+                            y0=active_data["FVG_PRICE"], y1=live_harga, 
+                            line_width=0, fillcolor="rgba(0, 191, 255, 0.15)", opacity=0.3,
+                            annotation_text="🏦 FVG ZONE", annotation_position="top left", annotation_font_color="#00bfff"
+                        )
 
                     if "NEUTRAL" not in sig:
                         fig.add_hline(y=entry_area, line_dash="solid", line_color="#d4af37", line_width=1.5, annotation_text="🎯 ENTRY", annotation_position="bottom right", annotation_font_color="#d4af37", annotation_font_size=10)
@@ -514,12 +526,11 @@ else:
                         fig.add_hline(y=tp1, line_dash="dash", line_color="#00ff88", line_width=1.5, annotation_text="💰 TP", annotation_position="top right", annotation_font_color="#00ff88", annotation_font_size=10)
 
                     fig.update_layout(
-                        dragmode=False, 
+                        dragmode=False, showlegend=False,
                         template='plotly_dark', height=400, margin=dict(l=5, r=40, t=10, b=5), 
                         xaxis_rangeslider_visible=False,
                         yaxis=dict(fixedrange=True, gridcolor='rgba(255,255,255,0.05)', zeroline=False),
-                        xaxis=dict(fixedrange=True, gridcolor='rgba(255,255,255,0.05)', zeroline=False),
-                        paper_bgcolor='rgba(0,0,0,0)', plot_bgcolor='rgba(0,0,0,0)',
-                        legend=dict(orientation="h", yanchor="bottom", y=1.02, xanchor="right", x=1, font=dict(size=10))
+                        xaxis=dict(fixedrange=True, gridcolor='rgba(255,255,255,0.05)', zeroline=False, tickformat="%d %b\n%H:%M", nticks=4),
+                        paper_bgcolor='rgba(0,0,0,0)', plot_bgcolor='rgba(0,0,0,0)'
                     )
                     st.plotly_chart(fig, use_container_width=True, config={'displayModeBar': False, 'scrollZoom': False})

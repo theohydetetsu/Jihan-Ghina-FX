@@ -488,7 +488,7 @@ else:
             </div>
             """, unsafe_allow_html=True)
 
-                        st.markdown("<br>", unsafe_allow_html=True)
+          st.markdown("<br>", unsafe_allow_html=True)
             with st.spinner("Memuat Tactical Chart..."):
                 if not df_chart.empty:
                     df_chart['EMA20'] = df_chart['Close'].ewm(span=20, adjust=False).mean()
@@ -505,28 +505,6 @@ else:
                         x=plot_df.index, open=plot_df['Open'], high=plot_df['High'],
                         low=plot_df['Low'], close=plot_df['Close'],
                         increasing_line_color='#00ff88', decreasing_line_color='#ff3366', name='Price', showlegend=False
-                    ))
+                    ))              
                     
-                    # 💡 SOLUSI 3: BOLLINGER BANDS LEBIH TRANSPARAN (0.02)
-                    fig.add_trace(go.Scatter(x=plot_df.index, y=plot_df['BB_UP'], line=dict(color='rgba(255,255,255,0.03)', width=1), name='BB Up', showlegend=False))
-                    fig.add_trace(go.Scatter(x=plot_df.index, y=plot_df['BB_LOW'], line=dict(color='rgba(255,255,255,0.03)', width=1), fill='tonexty', fillcolor='rgba(255,255,255,0.02)', name='BB Low', showlegend=False))
-                    fig.add_trace(go.Scatter(x=plot_df.index, y=plot_df['EMA20'], line=dict(color='#ffd700', width=1.5), name='EMA 20', showlegend=False))
-
-                    # PLOT GARIS ENTRY, SL, TP 
-                    if "NEUTRAL" not in sig:
-                        fig.add_hline(y=entry_area, line_dash="solid", line_color="#d4af37", line_width=1.5, annotation_text="🎯 ENTRY", annotation_position="bottom right", annotation_font_color="#d4af37", annotation_font_size=10)
-                        fig.add_hline(y=sl, line_dash="dash", line_color="#ff3366", line_width=1.5, annotation_text="🛡️ SL", annotation_position="bottom right", annotation_font_color="#ff3366", annotation_font_size=10)
-                        fig.add_hline(y=tp1, line_dash="dash", line_color="#00ff88", line_width=1.5, annotation_text="💰 TP", annotation_position="top right", annotation_font_color="#00ff88", annotation_font_size=10)
-
-                    # 💡 SOLUSI 2: HILANGKAN LEGEND (showlegend=False), MARGIN DIRAPIHKAN
-                    fig.update_layout(
-                        dragmode=False, 
-                        showlegend=False,
-                        template='plotly_dark', height=400, margin=dict(l=5, r=40, t=10, b=5), 
-                        xaxis_rangeslider_visible=False,
-                        yaxis=dict(fixedrange=True, gridcolor='rgba(255,255,255,0.05)', zeroline=False),
-                        xaxis=dict(fixedrange=True, gridcolor='rgba(255,255,255,0.05)', zeroline=False, 
-                                   tickformat="%d %b\n%H:%M", nticks=4), # Format tanggal lebih rapi
-                        paper_bgcolor='rgba(0,0,0,0)', plot_bgcolor='rgba(0,0,0,0)'
-                    )
-                    st.plotly_chart(fig, use_container_width=True, config={'displayModeBar': False, 'scrollZoom': False})
+                    

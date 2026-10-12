@@ -15,7 +15,7 @@ warnings.filterwarnings('ignore')
 # ==========================================
 # 1. KONFIGURASI UI STYLE & LUXURY CSS
 # ==========================================
-st.set_page_config(page_title="JIHAN-GHINA FX v12.2 | GOD-MODE", page_icon="💎", layout="wide")
+st.set_page_config(page_title="JIHAN-GHINA FX v12.3 | GOD-MODE", page_icon="💎", layout="wide")
 
 st.markdown("""
 <style>
@@ -27,11 +27,13 @@ st.markdown("""
         color: #f3f4f6 !important; 
     }
     
-    .block-container { padding-top: 1.5rem !important; padding-bottom: 2rem; max-width: 100% !important; overflow-x: hidden; }
+    /* PERBAIKAN: Padding atas ditambah menjadi 4rem agar judul tidak tertutup batas layar HP */
+    .block-container { padding-top: 4rem !important; padding-bottom: 2rem; max-width: 100% !important; overflow-x: hidden; }
     
+    /* PERBAIKAN: Ukuran Sidebar dikecilkan dari 260px menjadi 210px */
     [data-testid="stSidebar"] {
-        min-width: 260px !important;
-        max-width: 260px !important;
+        min-width: 210px !important;
+        max-width: 210px !important;
         background: linear-gradient(180deg, rgba(15,12,12,0.98) 0%, rgba(5,5,5,0.98) 100%) !important;
         border-right: 1px solid rgba(212, 175, 55, 0.3) !important;
     }
@@ -138,7 +140,6 @@ def fetch_live_calendar():
     impact = {k: 0 for k in DB_MACRO_BASE.keys()}
     api_status = "OK"
     
-    # URL tanpa cache-buster agar tidak dicurigai sebagai bot oleh Cloudflare
     urls = [
         "https://nfs.faireconomy.media/ff_calendar_thismonth.json", 
         "https://nfs.gweb.io/analytics/calendar/this-month"
@@ -283,11 +284,11 @@ if "op_data" not in st.session_state: st.session_state.op_data = []
 if "new_scan" not in st.session_state: st.session_state.new_scan = False
 
 with st.sidebar:
-    st.markdown("<h3 style='color: #d4af37; font-family: Oswald; font-size: 1.5rem; text-align:center;'>⚙️ COMMAND CENTER</h3>", unsafe_allow_html=True)
+    st.markdown("<h3 style='color: #d4af37; font-family: Oswald; font-size: 1.3rem; text-align:center;'>⚙️ COMMAND CENTER</h3>", unsafe_allow_html=True)
     st.markdown("---")
     
     acc_balance = st.number_input("💵 CAPITAL (USD):", min_value=10.0, value=float(load_capital()), step=100.0, key="input_modal", on_change=save_capital)
-    risk_pct = st.slider("⚠️ RISK PER TRADE (%):", min_value=0.5, max_value=5.0, value=1.0, step=0.5)
+    risk_pct = st.slider("⚠️ RISK/TRADE (%):", min_value=0.5, max_value=5.0, value=1.0, step=0.5)
     
     st.markdown("---")
     with st.expander("🛠️ FF MANUAL OVERRIDE", expanded=False):
@@ -322,7 +323,7 @@ with st.sidebar:
 # ==========================================
 # 5. MAIN DASHBOARD (MATRIX & MACRO)
 # ==========================================
-st.markdown("<p class='title-op'>JIHAN-GHINA FX <span style='color: #ffffff; font-size: 1.1rem; font-weight: 300;'>v12.2 <span style='color:#00ff88; font-size:0.8rem; font-weight:bold;'>| GOD-MODE</span></span></p>", unsafe_allow_html=True)
+st.markdown("<p class='title-op'>JIHAN-GHINA FX <span style='color: #ffffff; font-size: 1.1rem; font-weight: 300;'>v12.3 <span style='color:#00ff88; font-size:0.8rem; font-weight:bold;'>| GOD-MODE</span></span></p>", unsafe_allow_html=True)
 
 now_wib = datetime.now(pytz.timezone('Asia/Jakarta'))
 jam = now_wib.hour
@@ -381,7 +382,6 @@ else:
         
         if "TITANIUM" in rek: titanium_found.append(pair)
 
-        # Nama kolom diganti jadi "PAIR" agar tidak terpotong
         matrix_rows.append({
             "PAIR": pair, "PRICE": f"{raw['HARGA_SCAN']:.4f}" if "JPY" not in pair else f"{raw['HARGA_SCAN']:.2f}",
             "REGIME": raw["REGIME"], "ADX": f"{raw['ADX']:.1f}", "FUND": f"{f_score:+d}",
@@ -513,7 +513,6 @@ else:
                         fig.add_hline(y=sl, line_dash="dash", line_color="#ff3366", line_width=1.5, annotation_text="🛡️ SL", annotation_position="bottom right", annotation_font_color="#ff3366", annotation_font_size=10)
                         fig.add_hline(y=tp1, line_dash="dash", line_color="#00ff88", line_width=1.5, annotation_text="💰 TP", annotation_position="top right", annotation_font_color="#00ff88", annotation_font_size=10)
 
-                    # FITUR BARU: AUTO LOCK CHART (fixedrange=True & dragmode=False)
                     fig.update_layout(
                         dragmode=False, 
                         template='plotly_dark', height=400, margin=dict(l=5, r=40, t=10, b=5), 
